@@ -224,6 +224,21 @@
             margin-bottom: 15px;
         }
 
+        .modal label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal small {
+            display: block;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
         .modal-buttons {
             display: flex;
             gap: 10px;
@@ -465,7 +480,7 @@
             <div id="status" class="status" style="display: none;"></div>
 
             <div class="button-grid">
-                <button class="photo-btn btn-uputnica" onclick="alert('Dugme radi!')">
+                <button class="photo-btn btn-uputnica" onclick="startCamera('uputnica')">
                     <span>UPUTNICA</span>
                     <span class="icon">📄</span>
                     <span class="photo-count" id="count-uputnica">0</span>
@@ -494,12 +509,25 @@
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
-            <h3>Opcije</h3>
-            <label for="driveFolder">Google Drive folder ID:</label>
+            <h3>Google Drive API Opcije</h3>
+            
+            <label for="apiKey">Google API Key:</label>
+            <input type="password" id="apiKey" placeholder="AIzaSy...">
+            
+            <label for="clientId">Google Client ID:</label>
+            <input type="text" id="clientId" placeholder="123...apps.googleusercontent.com">
+            
+            <label for="driveFolder">Google Drive Folder ID:</label>
             <input type="text" id="driveFolder" placeholder="1A2B3C4D5E6F7G8H9I0J...">
-            <small style="color: #666; margin-bottom: 15px; display: block;">
-                Kopirajte ID iz Drive URL-a: drive.google.com/drive/folders/<strong>ID_OVDJE</strong>
+            
+            <small>
+                <strong>Kako dobiti podatke:</strong><br>
+                1. Idite na <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
+                2. Napravite projekat i omogućite Drive API<br>
+                3. Napravite API Key i OAuth Client ID<br>
+                4. Drive Folder ID je iz URL-a: drive.google.com/drive/folders/<strong>ID_OVDJE</strong>
             </small>
+            
             <div class="modal-buttons">
                 <button class="modal-btn btn-primary" onclick="saveSettings()">Sačuvaj</button>
                 <button class="modal-btn btn-secondary" onclick="closeSettings()">Odustani</button>
@@ -556,24 +584,115 @@
 
     <div class="flash" id="flash"></div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
+        // Google Drive API konfiguracija
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        
+        // API credentials
+        let API_KEY = localStorage.getItem('pigeonApiKey') || '';
+        let CLIENT_ID = localStorage.getItem('pigeonClientId') || '';
+        
         // Globalne varijable
         let currentPhotoType = '';
         let currentZoom = '1x';
         let stream = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
-        let driveApiKey = '';
         let driveFolderId = localStorage.getItem('pigeonDriveFolder') || '';
+        let gapi;
+        let googleAuth;
+        let isGoogleApiLoaded = false;
+
+        // Inicijalizacija Google API
+        async function initializeGoogleAPI() {
+            if (!API_KEY || !CLIENT_ID) {
+                showStatus('Potrebno je postaviti Google API credentials u opcijama', 'error');
+                return false;
+            }
+
+            try {
+                await gapi.load('client:auth2', initializeGapiClient);
+                return true;
+            } catch (error) {
+                console.error('Error loading Google API:', error);
+                showStatus('Greška pri učitavanju Google API', 'error');
+                return false;
+            }
+        }
+
+        async function initializeGapiClient() {
+            try {
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    clientId: CLIENT_ID,
+                    discoveryDocs: [DISCOVERY_DOC],
+                    scope: SCOPES
+                });
+
+                googleAuth = gapi.auth2.getAuthInstance();
+                isGoogleApiLoaded = true;
+                showStatus('Google Drive API uspešno učitan', 'success');
+            } catch (error) {
+                console.error('Error initializing Google API:', error);
+                showStatus('Greška pri inicijalizaciji Google API: ' + error.message, 'error');
+            }
+        }
+
+        // Google Drive funkcije
+        async function signInToGoogle() {
+            if (!isGoogleApiLoaded) {
+                const success = await initializeGoogleAPI();
+                if (!success) return false;
+            }
+
+            try {
+                if (!googleAuth.isSignedIn.get()) {
+                    await googleAuth.signIn();
+                }
+                return true;
+            } catch (error) {
+                console.error('Sign in error:', error);
+                showStatus('Greška pri prijavljivanju na Google: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        async function uploadToDrive(fileName, dataUrl) {
+            const signedIn = await signInToGoogle();
+            if (!signedIn) return false;
+
+            try {
+                const response = await gapi.client.drive.files.list({
+                    q: query,
+                    fields: 'files(id,name,webViewLink,thumbnailLink)',
+                    orderBy: 'name'
+                });
+
+                return response.result.files || [];
+            } catch (error) {
+                console.error('Error listing files:', error);
+                showStatus('Greška pri pretraživanju Drive fajlova: ' + error.message, 'error');
+                return [];
+            }
+        }
 
         // Inicijalizacija
         document.addEventListener('DOMContentLoaded', function() {
             updatePhotoCounts();
             document.getElementById('driveFolder').value = driveFolderId;
+            document.getElementById('apiKey').value = API_KEY;
+            document.getElementById('clientId').value = CLIENT_ID;
             
-            // Auto-submit na Enter
+            // Initialize Google API if credentials exist
+            if (API_KEY && CLIENT_ID) {
+                initializeGoogleAPI();
+            }
+            
+            // Auto-submit na Enter ili pretraži Drive
             document.getElementById('patientNumber').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    // Možete dodati auto-sync logiku ovdje
+                    searchDriveForPatient();
                 }
             });
         });
@@ -588,9 +707,21 @@
         }
 
         function saveSettings() {
+            API_KEY = document.getElementById('apiKey').value.trim();
+            CLIENT_ID = document.getElementById('clientId').value.trim();
             driveFolderId = document.getElementById('driveFolder').value.trim();
+            
+            localStorage.setItem('pigeonApiKey', API_KEY);
+            localStorage.setItem('pigeonClientId', CLIENT_ID);
             localStorage.setItem('pigeonDriveFolder', driveFolderId);
-            showStatus('Opcije sačuvane', 'success');
+            
+            if (API_KEY && CLIENT_ID) {
+                initializeGoogleAPI();
+                showStatus('Opcije sačuvane - Google Drive API je spreman', 'success');
+            } else {
+                showStatus('Opcije sačuvane', 'success');
+            }
+            
             closeSettings();
         }
 
@@ -664,7 +795,7 @@
             currentZoom = '1x';
         }
 
-        function capturePhoto() {
+        async function capturePhoto() {
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -699,30 +830,104 @@
                 fileName = `${originalFileName}(${counter})`;
             }
 
-            // Sačuvaj sliku
+            // Sačuvaj sliku lokalno
             const photoData = {
                 name: fileName,
                 type: currentPhotoType,
                 patient: patientNumber,
                 dataUrl: canvas.toDataURL('image/jpeg', 0.9),
                 timestamp: new Date().toISOString(),
-                zoom: currentZoom
+                zoom: currentZoom,
+                uploaded: false
             };
 
             savedPhotos.push(photoData);
             localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
             
-            // Simulacija Google Drive upload-a
-            if (driveFolderId) {
-                setTimeout(() => {
-                    showStatus(`✅ Slika ${fileName} snimljena i uploadovana na Drive!`, 'success');
-                }, 500);
+            // Pokušaj upload na Google Drive
+            showStatus(`📸 Slika ${fileName} snimljena. Upload na Drive...`, 'info');
+            
+            if (API_KEY && CLIENT_ID && driveFolderId) {
+                try {
+                    const uploadResult = await uploadToDrive(fileName, photoData.dataUrl);
+                    if (uploadResult) {
+                        // Označi kao upload-ovano
+                        photoData.uploaded = true;
+                        photoData.driveId = uploadResult.id;
+                        savedPhotos[savedPhotos.length - 1] = photoData;
+                        localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
+                        
+                        showStatus(`✅ Slika ${fileName} uspešno upload-ovana na Google Drive!`, 'success');
+                    } else {
+                        showStatus(`⚠️ Slika ${fileName} snimljena lokalno, ali nije upload-ovana`, 'error');
+                    }
+                } catch (error) {
+                    showStatus(`⚠️ Upload greška: ${error.message}. Slika sačuvana lokalno.`, 'error');
+                }
             } else {
-                showStatus(`✅ Slika ${fileName} snimljena lokalno`, 'success');
+                showStatus(`✅ Slika ${fileName} snimljena lokalno. Postavite Google API u opcijama za Drive upload.`, 'info');
             }
 
             updatePhotoCounts();
             closeCamera();
+        }
+
+        async function searchDriveForPatient() {
+            const patientNumber = document.getElementById('patientNumber').value.trim();
+            if (!patientNumber) {
+                showStatus('Molimo unesite broj pacijenta', 'error');
+                return;
+            }
+
+            if (!API_KEY || !CLIENT_ID) {
+                showStatus('Postavite Google API credentials u opcijama', 'error');
+                return;
+            }
+
+            showStatus('🔍 Pretražujem Google Drive...', 'info');
+
+            try {
+                const driveFiles = await listDriveFiles(patientNumber);
+                
+                if (driveFiles.length > 0) {
+                    showStatus(`✅ Pronađeno ${driveFiles.length} slika za pacijenta ${patientNumber} na Google Drive`, 'success');
+                    displayDriveSearchResults(driveFiles);
+                } else {
+                    showStatus(`⚠️ Nema slika za pacijenta ${patientNumber} na Google Drive`, 'error');
+                }
+            } catch (error) {
+                showStatus('Greška pri pretrazi: ' + error.message, 'error');
+            }
+        }
+
+        function displayDriveSearchResults(files) {
+            const driveList = document.getElementById('driveList');
+            driveList.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'drive-item';
+                
+                let fileType = 'unknown';
+                if (file.name.includes('_uputnica_')) fileType = 'uputnica';
+                else if (file.name.includes('_macro_')) fileType = 'makroskopska';
+                else if (file.name.includes('_micro_')) fileType = 'mikroskopska';
+                
+                item.innerHTML = `
+                    <div>
+                        <div class="drive-item-name">${file.name}</div>
+                        <div style="font-size: 12px; color: #999;">
+                            ${fileType} • Google Drive
+                        </div>
+                    </div>
+                    <div class="drive-item-actions">
+                        <button class="drive-action-btn btn-view" onclick="window.open('${file.webViewLink}', '_blank')">👁️</button>
+                    </div>
+                `;
+                driveList.appendChild(item);
+            });
+
+            document.getElementById('driveModal').style.display = 'block';
         }
 
         // Drive funkcije
@@ -731,16 +936,19 @@
             driveList.innerHTML = '';
 
             if (savedPhotos.length === 0) {
-                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema slika</div>';
+                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
             } else {
                 savedPhotos.forEach((photo, index) => {
                     const item = document.createElement('div');
                     item.className = 'drive-item';
+                    
+                    const uploadStatus = photo.uploaded ? '☁️ Uploaded' : '📱 Lokalno';
+                    
                     item.innerHTML = `
                         <div>
                             <div class="drive-item-name">${photo.name}</div>
                             <div style="font-size: 12px; color: #999;">
-                                ${photo.type} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}
+                                ${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}
                             </div>
                         </div>
                         <div class="drive-item-actions">
@@ -767,7 +975,7 @@
                     <head><title>${photo.name}</title></head>
                     <body style="margin:0;padding:20px;background:#f0f0f0;text-align:center;">
                         <h3>${photo.name}</h3>
-                        <p>Tip: ${photo.type} | Pacijent: ${photo.patient}</p>
+                        <p>Tip: ${photo.type} | Pacijent: ${photo.patient} | ${photo.uploaded ? 'Upload-ovano na Drive' : 'Lokalno'}</p>
                         <img src="${photo.dataUrl}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2);">
                     </body>
                 </html>
@@ -816,12 +1024,49 @@
                 event.preventDefault();
             }
         }, { passive: false });
-
-        // Dodaj meta tag za iOS
-        const metaTag = document.createElement('meta');
-        metaTag.name = 'viewport';
-        metaTag.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-        document.getElementsByTagName('head')[0].appendChild(metaTag);
     </script>
 </body>
-</html>
+</html> await fetch(dataUrl);
+                const blob = await response.blob();
+
+                const metadata = {
+                    name: fileName + '.jpg',
+                    parents: driveFolderId ? [driveFolderId] : undefined
+                };
+
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+                form.append('file', blob);
+
+                const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: new Headers({
+                        'Authorization': 'Bearer ' + googleAuth.currentUser.get().getAuthResponse().access_token
+                    }),
+                    body: form
+                });
+
+                if (uploadResponse.ok) {
+                    const result = await uploadResponse.json();
+                    return result;
+                } else {
+                    throw new Error('Upload failed: ' + uploadResponse.statusText);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showStatus('Greška pri upload-u na Drive: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        async function listDriveFiles(patientNumber) {
+            const signedIn = await signInToGoogle();
+            if (!signedIn) return [];
+
+            try {
+                let query = `name contains '${patientNumber}_'`;
+                if (driveFolderId) {
+                    query += ` and '${driveFolderId}' in parents`;
+                }
+
+                const response =
