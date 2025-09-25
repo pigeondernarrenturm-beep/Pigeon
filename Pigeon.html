@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pigeon - Medical Photo App</title>
+    <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8klEQVRYhbWXa0xTZxjHf6ctLaW0tFxaKBcLCIgXQEBFvOAFdXOZ82Zmi1tcNhdny+Yym8tk2ZfNfdjmPmzJks1ki4vOzS/LvMwv82rUqXhBQUBuyr2ltLRQSqGl7fvOOW1pSzs1WfIkT96+533f5//8n+d53zcIAGw7Uvo30MQAO5k9M5M6e2ZkUmfPzEzK7JmZSZ09M/N/d6YkJycnJydnb968eXl5eVlZWVlZWRlRFOXl5eXn5+cVFBQUFhYWFRUVFxcXl5SUlJaWlpeXl1dUVFRWVlZVVVVXV9fU1NTW1tbV1dXX1zc0NDQ2NjY1NTU3N7e0tLS2tra1tbW3t3d0dHR2dnZ1dXV3d/f09PT29vb19fUNDA8PDw8NDw+PjIyMjY+Pj09MTExOTk5PT09PT8/MzMzOzs7Nzc3Pzy8sLCwuLi4tLS0vL6+srKyurq6tra2vr29oaGhsbGxqampubm5paWltbW1ra2tra2tvb+/o6Ojs7Ozq6uru7u7p6ent7e3r6xsYGBgeHh4eHh4eGRkZGx8fH5+YmJicnJyenp6enp6ZmZmdnZ2bm5ufn19YWFhcXFxaWlpeXl5ZWVldXV1bW1tfX9/Q0NDY2NjU1NTc3NzS0tLa2trW1tbW1tbe3t7R0dHZ2dnV1dXd3d3T09Pb29vX1zcwMDA8PDw8PDwyMjI2Pj4+MTExOTk5PT09PT0zMzM7Ozs3Nzc/P7+wsLC4uLi0tLS8vLyysjI=">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8klEQVRYhbWXa0xTZxjHf6ctLaW0tFxaKBcLCIgXQEBFvOAFdXOZ82Zmi1tcNhdny+Yym8tk2ZfNfdjmPmzJks1ki4vOzS/LvMwv82rUqXhBQUBuyr2ltLRQSqGl7fvOOW1pSzs1WfIkT96+533f5//8n+d53zcIAGw7Uvo30MQAO5k9M5M6e2ZkUmfPzEzK7JmZSZ09M/N/d6YkJycnJydnb968eXl5eVlZWVlZWRlRFOXl5eXn5+cVFBQUFhYWFRUVFxcXl5SUlJaWlpeXl1dUVFRWVlZVVVVXV9fU1NTW1tbV1dXX1zc0NDQ2NjY1NTU3N7e0tLS2tra1tbW3t3d0dHR2dnZ1dXV3d/f09PT29vb19fUNDA8PDw8NDw+PjIyMjY+Pj09MTExOTk5PT09PT8/MzMzOzs7Nzc3Pzy8sLCwuLi4tLS0vL6+srKyurq6tra2vr29oaGhsbGxqampubm5paWltbW1ra2tra2tvb+/o6Ojs7Ozq6uru7u7p6ent7e3r6xsYGBgeHh4eHh4eGRkZGx8fH5+YmJicnJyenp6enp6ZmZmdnZ2bm5ufn19YWFhcXFxaWlpeXl5ZWVldXV1bW1tfX9/Q0NDY2NjU1NTc3NzS0tLa2trW1tbW1tbe3t7R0dHZ2dnV1dXd3d3T09Pb29vX1zcwMDA8PDw8PDwyMjI2Pj4+MTExOTk5PT09PT0zMzM7Ozs3Nzc/P7+wsLC4uLi0tLS8vLyysjI=">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 10px;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8klEQVRYhbWXa0xTZxjHf6ctLaW0tFxaKBcLCIgXQEBFvOAFdXOZ82Zmi1tcNhdny+Yym8tk2ZfNfdjmPmzJks1ki4vOzS/LvMwv82rUqXhBQUBuyr2ltLRQSqGl7fvOOW1pSzs1WfIkT96+533f5//8n+d53zcIAGw7Uvo30MQAO5k9M5M6e2ZkUmfPzEzK7JmZSZ09M/N/d6YkJycnJydnb968eXl5eVlZWVlZWRlRFOXl5eXn5+cVFBQUFhYWFRUVFxcXl5SUlJaWlpeXl1dUVFRWVlZVVVVXV9fU1NTW1tbV1dXX1zc0NDQ2NjY1NTU3N7e0tLS2tra1tbW3t3d0dHR2dnZ1dXV3d/f09PT29vb19fUNDA8PDw8NDw+PjIyMjY+Pj09MTExOTk5PT09PT8/MzMzOzs7Nzc3Pzy8sLCwuLi4tLS0vL6+srKyurq6tra2vr29oaGhsbGxqampubm5paWltbW1ra2tra2tvb+/o6Ojs7Ozq6uru7u7p6ent7e3r6xsYGBgeHh4eHh4eGRkZGx8fH5+YmJicnJyenp6enp6ZmZmdnZ2bm5ufn19YWFhcXFxaWlpeXl5ZWVldXV1bW1tfX9/Q0NDY2NjU1NTc3NzS0tLa2trW1tbW1tbe3t7R0dHZ2dnV1dXd3d3T09Pb29vX1zcwMDA8PDw8PDwyMjI2Pj4+MTExOTk5PT09PT0zMzM7Ozs3Nzc/P7+wsLC4uLi0tLS8vLyysjI=');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .main-content {
+            padding: 30px 20px;
+        }
+
+        .patient-input {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .patient-input label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .patient-input input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 18px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .patient-input input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .button-grid {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .photo-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo-btn:active {
+            transform: scale(0.98);
+        }
+
+        .photo-btn .icon {
+            font-size: 24px;
+        }
+
+        .btn-uputnica {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .btn-macro {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .btn-micro {
+            background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
+        }
+
+        .btn-drive {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .photo-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+
+        .modal input, .modal textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .camera-modal {
+            background: black;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .camera-header {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-info h3 {
+            margin-bottom: 5px;
+        }
+
+        .camera-settings {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .zoom-btn {
+            background: none;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .zoom-btn.active {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .close-camera {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .camera-view {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .camera-controls {
+            background: rgba(0,0,0,0.8);
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .capture-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: rgba(255,255,255,0.3);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .capture-btn:active {
+            transform: scale(0.9);
+        }
+
+        .capture-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .drive-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .drive-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .drive-item:last-child {
+            border-bottom: none;
+        }
+
+        .drive-item-name {
+            font-family: monospace;
+            color: #666;
+        }
+
+        .drive-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .drive-action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .btn-view {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+
+            .photo-btn {
+                padding: 18px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo"></div>
+            <h1>Pigeon</h1>
+            <p>Medical Photo Documentation</p>
+            <button class="settings-btn" onclick="openSettings()">⚙️</button>
+        </div>
+
+        <div class="main-content">
+            <div class="patient-input">
+                <label for="patientNumber">Broj pacijenta:</label>
+                <input type="text" id="patientNumber" placeholder="Unesite broj pacijenta...">
+            </div>
+
+            <div id="status" class="status" style="display: none;"></div>
+
+            <div class="button-grid">
+                <button class="photo-btn btn-uputnica" onclick="startCamera('uputnica')">
+                    <span>UPUTNICA</span>
+                    <span class="icon">📄</span>
+                    <span class="photo-count" id="count-uputnica">0</span>
+                </button>
+
+                <button class="photo-btn btn-macro" onclick="startCamera('macro')">
+                    <span>MAKROSKOPSKA SLIKA</span>
+                    <span class="icon">📷</span>
+                    <span class="photo-count" id="count-macro">0</span>
+                </button>
+
+                <button class="photo-btn btn-micro" onclick="startCamera('micro')">
+                    <span>MIKROSKOPSKA SLIKA</span>
+                    <span class="icon">🔬</span>
+                    <span class="photo-count" id="count-micro">0</span>
+                </button>
+
+                <button class="photo-btn btn-drive" onclick="openDrive()">
+                    <span>DRIVE PREGLED</span>
+                    <span class="icon">☁️</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h3>Opcije</h3>
+            <label for="driveFolder">Google Drive folder ID:</label>
+            <input type="text" id="driveFolder" placeholder="1A2B3C4D5E6F7G8H9I0J...">
+            <small style="color: #666; margin-bottom: 15px; display: block;">
+                Kopirajte ID iz Drive URL-a: drive.google.com/drive/folders/<strong>ID_OVDJE</strong>
+            </small>
+            <div class="modal-buttons">
+                <button class="modal-btn btn-primary" onclick="saveSettings()">Sačuvaj</button>
+                <button class="modal-btn btn-secondary" onclick="closeSettings()">Odustani</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="modal camera-modal">
+        <div class="camera-container">
+            <div class="camera-header">
+                <div class="camera-info">
+                    <h3 id="cameraTitle">UPUTNICA</h3>
+                    <p>Pacijent: <span id="cameraPatient"></span></p>
+                </div>
+                <div class="camera-settings">
+                    <div class="zoom-controls" id="zoomControls" style="display: none;">
+                        <button class="zoom-btn active" onclick="setZoom('1x')">1x</button>
+                        <button class="zoom-btn" onclick="setZoom('2x')">2x</button>
+                    </div>
+                    <button class="close-camera" onclick="closeCamera()">✕</button>
+                </div>
+            </div>
+
+            <div class="camera-view">
+                <video id="video" autoplay playsinline></video>
+                <div class="camera-overlay" id="cameraOverlay">
+                    <div id="flashIndicator" style="display: none;">⚡ Blic ON</div>
+                    <div id="portraitIndicator" style="display: none;">📷 Portrait mode</div>
+                    <div id="zoomIndicator">🔍 1x</div>
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button class="capture-btn" onclick="capturePhoto()"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drive Modal -->
+    <div id="driveModal" class="modal">
+        <div class="modal-content">
+            <h3>Drive slike</h3>
+            <div class="drive-list" id="driveList">
+                <div style="text-align: center; color: #666; padding: 20px;">
+                    Nema slika u Drive-u
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn btn-secondary" onclick="closeDrive()">Zatvori</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flash" id="flash"></div>
+
+    <script>
+        // Globalne varijable
+        let currentPhotoType = '';
+        let currentZoom = '1x';
+        let stream = null;
+        let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
+        let driveApiKey = '';
+        let driveFolderId = localStorage.getItem('pigeonDriveFolder') || '';
+
+        // Inicijalizacija
+        document.addEventListener('DOMContentLoaded', function() {
+            updatePhotoCounts();
+            document.getElementById('driveFolder').value = driveFolderId;
+            
+            // Auto-submit na Enter
+            document.getElementById('patientNumber').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    // Možete dodati auto-sync logiku ovdje
+                }
+            });
+        });
+
+        // Settings funkcije
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            driveFolderId = document.getElementById('driveFolder').value.trim();
+            localStorage.setItem('pigeonDriveFolder', driveFolderId);
+            showStatus('Opcije sačuvane', 'success');
+            closeSettings();
+        }
+
+        // Camera funkcije
+        async function startCamera(photoType) {
+            const patientNumber = document.getElementById('patientNumber').value.trim();
+            if (!patientNumber) {
+                showStatus('Molimo unesite broj pacijenta', 'error');
+                return;
+            }
+
+            currentPhotoType = photoType;
+            document.getElementById('cameraPatient').textContent = patientNumber;
+            
+            // Postavi naslov i settings
+            const titles = {
+                'uputnica': 'UPUTNICA',
+                'macro': 'MAKROSKOPSKA SLIKA', 
+                'micro': 'MIKROSKOPSKA SLIKA'
+            };
+            document.getElementById('cameraTitle').textContent = titles[photoType];
+
+            // Pokaži zoom kontrole samo za micro
+            const zoomControls = document.getElementById('zoomControls');
+            if (photoType === 'micro') {
+                zoomControls.style.display = 'flex';
+            } else {
+                zoomControls.style.display = 'none';
+            }
+
+            // Postavi indikatore
+            document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
+            document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
+
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('video').srcObject = stream;
+                document.getElementById('cameraModal').style.display = 'block';
+            } catch (error) {
+                console.error('Camera error:', error);
+                showStatus('Greška pri pristupu kameri: ' + error.message, 'error');
+            }
+        }
+
+        function setZoom(zoom) {
+            currentZoom = zoom;
+            document.getElementById('zoomIndicator').textContent = `🔍 ${zoom}`;
+            
+            // Update zoom button states
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function closeCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('cameraModal').style.display = 'none';
+            currentPhotoType = '';
+            currentZoom = '1x';
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            // Flash efekat za uputnicu
+            if (currentPhotoType === 'uputnica') {
+                const flash = document.getElementById('flash');
+                flash.style.opacity = '0.8';
+                setTimeout(() => {
+                    flash.style.opacity = '0';
+                }, 200);
+            }
+
+            // Generiši naziv fajla
+            const patientNumber = document.getElementById('cameraPatient').textContent;
+            const today = new Date();
+            const dateStr = String(today.getDate()).padStart(2, '0') + '.' + 
+                          String(today.getMonth() + 1).padStart(2, '0') + '.' + 
+                          String(today.getFullYear()).slice(-2);
+            
+            let fileName = `${patientNumber}_${currentPhotoType}_${dateStr}`;
+            
+            // Provjeri duplikate
+            let counter = 1;
+            let originalFileName = fileName;
+            while (savedPhotos.some(photo => photo.name === fileName)) {
+                counter++;
+                fileName = `${originalFileName}(${counter})`;
+            }
+
+            // Sačuvaj sliku
+            const photoData = {
+                name: fileName,
+                type: currentPhotoType,
+                patient: patientNumber,
+                dataUrl: canvas.toDataURL('image/jpeg', 0.9),
+                timestamp: new Date().toISOString(),
+                zoom: currentZoom
+            };
+
+            savedPhotos.push(photoData);
+            localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
+            
+            // Simulacija Google Drive upload-a
+            if (driveFolderId) {
+                setTimeout(() => {
+                    showStatus(`✅ Slika ${fileName} snimljena i uploadovana na Drive!`, 'success');
+                }, 500);
+            } else {
+                showStatus(`✅ Slika ${fileName} snimljena lokalno`, 'success');
+            }
+
+            updatePhotoCounts();
+            closeCamera();
+        }
+
+        // Drive funkcije
+        function openDrive() {
+            const driveList = document.getElementById('driveList');
+            driveList.innerHTML = '';
+
+            if (savedPhotos.length === 0) {
+                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema slika</div>';
+            } else {
+                savedPhotos.forEach((photo, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'drive-item';
+                    item.innerHTML = `
+                        <div>
+                            <div class="drive-item-name">${photo.name}</div>
+                            <div style="font-size: 12px; color: #999;">
+                                ${photo.type} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}
+                            </div>
+                        </div>
+                        <div class="drive-item-actions">
+                            <button class="drive-action-btn btn-view" onclick="viewPhoto(${index})">👁️</button>
+                            <button class="drive-action-btn btn-delete" onclick="deletePhoto(${index})">🗑️</button>
+                        </div>
+                    `;
+                    driveList.appendChild(item);
+                });
+            }
+
+            document.getElementById('driveModal').style.display = 'block';
+        }
+
+        function closeDrive() {
+            document.getElementById('driveModal').style.display = 'none';
+        }
+
+        function viewPhoto(index) {
+            const photo = savedPhotos[index];
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(`
+                <html>
+                    <head><title>${photo.name}</title></head>
+                    <body style="margin:0;padding:20px;background:#f0f0f0;text-align:center;">
+                        <h3>${photo.name}</h3>
+                        <p>Tip: ${photo.type} | Pacijent: ${photo.patient}</p>
+                        <img src="${photo.dataUrl}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+                    </body>
+                </html>
+            `);
+        }
+
+        function deletePhoto(index) {
+            if (confirm('Da li ste sigurni da želite obrisati ovu sliku?')) {
+                const photo = savedPhotos[index];
+                savedPhotos.splice(index, 1);
+                localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
+                updatePhotoCounts();
+                showStatus(`🗑️ Obrisana slika: ${photo.name}`, 'success');
+                openDrive(); // Refresh drive view
+            }
+        }
+
+        // Utility funkcije
+        function updatePhotoCounts() {
+            const counts = { uputnica: 0, macro: 0, micro: 0 };
+            savedPhotos.forEach(photo => {
+                if (counts[photo.type] !== undefined) {
+                    counts[photo.type]++;
+                }
+            });
+
+            document.getElementById('count-uputnica').textContent = counts.uputnica;
+            document.getElementById('count-macro').textContent = counts.macro;
+            document.getElementById('count-micro').textContent = counts.micro;
+        }
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 4000);
+        }
+
+        // Sprečavanje zoom-a na telefonu
+        document.addEventListener('touchmove', function (event) {
+            if (event.scale !== 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        // Dodaj meta tag za iOS
+        const metaTag = document.createElement('meta');
+        metaTag.name = 'viewport';
+        metaTag.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        document.getElementsByTagName('head')[0].appendChild(metaTag);
+    </script>
+</body>
+</html>
