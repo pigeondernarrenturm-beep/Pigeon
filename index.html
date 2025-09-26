@@ -357,14 +357,15 @@
         }
 
         .capture-btn {
-            width: 70px;
-            height: 70px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: 4px solid white;
+            border: 5px solid white;
             background: rgba(255,255,255,0.3);
             cursor: pointer;
             position: relative;
             transition: all 0.3s ease;
+            margin: 0 auto;
         }
 
         .capture-btn:active {
@@ -377,8 +378,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             background: white;
             border-radius: 50%;
         }
@@ -472,27 +473,22 @@
         </div>
 
         <div class="main-content">
-            <div class="patient-input">
-                <label for="patientNumber">Broj pacijenta:</label>
-                <input type="text" id="patientNumber" placeholder="Unesite broj pacijenta...">
-            </div>
-
             <div id="status" class="status" style="display: none;"></div>
 
             <div class="button-grid">
-                <button class="photo-btn btn-uputnica" onclick="startCamera('uputnica')">
+                <button class="photo-btn btn-uputnica" onclick="showPatientInput('uputnica')">
                     <span>UPUTNICA</span>
                     <span class="icon">📄</span>
                     <span class="photo-count" id="count-uputnica">0</span>
                 </button>
 
-                <button class="photo-btn btn-macro" onclick="startCamera('macro')">
+                <button class="photo-btn btn-macro" onclick="showPatientInput('macro')">
                     <span>MAKROSKOPSKA SLIKA</span>
                     <span class="icon">📷</span>
                     <span class="photo-count" id="count-macro">0</span>
                 </button>
 
-                <button class="photo-btn btn-micro" onclick="startCamera('micro')">
+                <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <span>MIKROSKOPSKA SLIKA</span>
                     <span class="icon">🔬</span>
                     <span class="photo-count" id="count-micro">0</span>
@@ -502,6 +498,19 @@
                     <span>DRIVE PREGLED</span>
                     <span class="icon">☁️</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Input Modal -->
+    <div id="patientModal" class="modal">
+        <div class="modal-content">
+            <h3 id="patientModalTitle">UPUTNICA</h3>
+            <label for="patientNumber">Broj pacijenta:</label>
+            <input type="text" id="patientNumber" placeholder="Unesite broj pacijenta..." autofocus>
+            <div class="modal-buttons">
+                <button class="modal-btn btn-primary" onclick="confirmPatientAndStartCamera()">Pokreni kameru</button>
+                <button class="modal-btn btn-secondary" onclick="closePatientInput()">Odustani</button>
             </div>
         </div>
     </div>
@@ -612,7 +621,10 @@
             }
 
             try {
-                await gapi.load('client:auth2', initializeGapiClient);
+                await new Promise((resolve) => {
+                    gapi.load('client:auth2', resolve);
+                });
+                await initializeGapiClient();
                 return true;
             } catch (error) {
                 console.error('Error loading Google API:', error);
@@ -632,7 +644,7 @@
 
                 googleAuth = gapi.auth2.getAuthInstance();
                 isGoogleApiLoaded = true;
-                showStatus('Google Drive API uspešno učitan', 'success');
+                showStatus('Google Drive API uspješno učitan', 'success');
             } catch (error) {
                 console.error('Error initializing Google API:', error);
                 showStatus('Greška pri inicijalizaciji Google API: ' + error.message, 'error');
@@ -663,6 +675,49 @@
             if (!signedIn) return false;
 
             try {
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+
+                const metadata = {
+                    name: fileName + '.jpg',
+                    parents: driveFolderId ? [driveFolderId] : undefined
+                };
+
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+                form.append('file', blob);
+
+                const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: new Headers({
+                        'Authorization': 'Bearer ' + googleAuth.currentUser.get().getAuthResponse().access_token
+                    }),
+                    body: form
+                });
+
+                if (uploadResponse.ok) {
+                    const result = await uploadResponse.json();
+                    return result;
+                } else {
+                    throw new Error('Upload failed: ' + uploadResponse.statusText);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showStatus('Greška pri upload-u na Drive: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        async function listDriveFiles(patientNumber) {
+            const signedIn = await signInToGoogle();
+            if (!signedIn) return [];
+
+            try {
+                let query = `name contains '${patientNumber}_'`;
+                if (driveFolderId) {
+                    query += ` and '${driveFolderId}' in parents`;
+                }
+
                 const response = await gapi.client.drive.files.list({
                     q: query,
                     fields: 'files(id,name,webViewLink,thumbnailLink)',
@@ -689,10 +744,10 @@
                 initializeGoogleAPI();
             }
             
-            // Auto-submit na Enter ili pretraži Drive
+            // Enter key za patient input modal
             document.getElementById('patientNumber').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    searchDriveForPatient();
+                    confirmPatientAndStartCamera();
                 }
             });
         });
@@ -725,15 +780,102 @@
             closeSettings();
         }
 
-        // Camera funkcije
-        async function startCamera(photoType) {
+        // Funkcije za patient input modal
+        function showPatientInput(photoType) {
+            currentPhotoType = photoType;
+            const titles = {
+                'uputnica': 'UPUTNICA',
+                'macro': 'MAKROSKOPSKA SLIKA', 
+                'micro': 'MIKROSKOPSKA SLIKA'
+            };
+            document.getElementById('patientModalTitle').textContent = titles[photoType];
+            document.getElementById('patientNumber').value = ''; // Clear previous value
+            document.getElementById('patientModal').style.display = 'block';
+            
+            // Focus na input field
+            setTimeout(() => {
+                document.getElementById('patientNumber').focus();
+            }, 100);
+        }
+
+        function closePatientInput() {
+            document.getElementById('patientModal').style.display = 'none';
+            currentPhotoType = '';
+        }
+
+        function confirmPatientAndStartCamera() {
             const patientNumber = document.getElementById('patientNumber').value.trim();
             if (!patientNumber) {
                 showStatus('Molimo unesite broj pacijenta', 'error');
                 return;
             }
+            closePatientInput();
+            
+            if (currentPhotoType === 'drive_search') {
+                searchDriveForPatient(patientNumber);
+            } else {
+                startCamera(currentPhotoType, patientNumber);
+            }
+        }
 
-            currentPhotoType = photoType;
+        async function searchDriveForPatient(patientNumber) {
+            if (!API_KEY || !CLIENT_ID) {
+                showLocalPhotos(); // Show local photos if no API credentials
+                return;
+            }
+
+            showStatus('🔍 Pretražujem Google Drive...', 'info');
+
+            try {
+                const driveFiles = await listDriveFiles(patientNumber);
+                
+                if (driveFiles.length > 0) {
+                    showStatus(`✅ Pronađeno ${driveFiles.length} slika za pacijenta ${patientNumber} na Google Drive`, 'success');
+                    displayDriveSearchResults(driveFiles);
+                } else {
+                    showStatus(`⚠️ Nema slika za pacijenta ${patientNumber} na Google Drive`, 'error');
+                    showLocalPhotos(); // Fallback to local photos
+                }
+            } catch (error) {
+                showStatus('Greška pri pretrazi: ' + error.message, 'error');
+                showLocalPhotos(); // Fallback to local photos
+            }
+        }
+
+        function showLocalPhotos() {
+            const driveList = document.getElementById('driveList');
+            driveList.innerHTML = '';
+
+            if (savedPhotos.length === 0) {
+                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
+            } else {
+                savedPhotos.forEach((photo, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'drive-item';
+                    
+                    const uploadStatus = photo.uploaded ? '☁️ Uploaded' : '📱 Lokalno';
+                    
+                    item.innerHTML = `
+                        <div>
+                            <div class="drive-item-name">${photo.name}</div>
+                            <div style="font-size: 12px; color: #999;">
+                                ${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}
+                            </div>
+                        </div>
+                        <div class="drive-item-actions">
+                            <button class="drive-action-btn btn-view" onclick="viewPhoto(${index})">👁️</button>
+                            <button class="drive-action-btn btn-delete" onclick="deletePhoto(${index})">🗑️</button>
+                        </div>
+                    `;
+                    driveList.appendChild(item);
+                });
+            }
+
+            document.getElementById('driveModal').style.display = 'block';
+        }
+
+        // Camera funkcije
+        async function startCamera(photoType, patientNumber) {
             document.getElementById('cameraPatient').textContent = patientNumber;
             
             // Postavi naslov i settings
@@ -857,7 +999,7 @@
                         savedPhotos[savedPhotos.length - 1] = photoData;
                         localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
                         
-                        showStatus(`✅ Slika ${fileName} uspešno upload-ovana na Google Drive!`, 'success');
+                        showStatus(`✅ Slika ${fileName} uspješno upload-ovana na Google Drive!`, 'success');
                     } else {
                         showStatus(`⚠️ Slika ${fileName} snimljena lokalno, ali nije upload-ovana`, 'error');
                     }
@@ -870,34 +1012,6 @@
 
             updatePhotoCounts();
             closeCamera();
-        }
-
-        async function searchDriveForPatient() {
-            const patientNumber = document.getElementById('patientNumber').value.trim();
-            if (!patientNumber) {
-                showStatus('Molimo unesite broj pacijenta', 'error');
-                return;
-            }
-
-            if (!API_KEY || !CLIENT_ID) {
-                showStatus('Postavite Google API credentials u opcijama', 'error');
-                return;
-            }
-
-            showStatus('🔍 Pretražujem Google Drive...', 'info');
-
-            try {
-                const driveFiles = await listDriveFiles(patientNumber);
-                
-                if (driveFiles.length > 0) {
-                    showStatus(`✅ Pronađeno ${driveFiles.length} slika za pacijenta ${patientNumber} na Google Drive`, 'success');
-                    displayDriveSearchResults(driveFiles);
-                } else {
-                    showStatus(`⚠️ Nema slika za pacijenta ${patientNumber} na Google Drive`, 'error');
-                }
-            } catch (error) {
-                showStatus('Greška pri pretrazi: ' + error.message, 'error');
-            }
         }
 
         function displayDriveSearchResults(files) {
@@ -932,35 +1046,15 @@
 
         // Drive funkcije
         function openDrive() {
-            const driveList = document.getElementById('driveList');
-            driveList.innerHTML = '';
-
-            if (savedPhotos.length === 0) {
-                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
-            } else {
-                savedPhotos.forEach((photo, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'drive-item';
-                    
-                    const uploadStatus = photo.uploaded ? '☁️ Uploaded' : '📱 Lokalno';
-                    
-                    item.innerHTML = `
-                        <div>
-                            <div class="drive-item-name">${photo.name}</div>
-                            <div style="font-size: 12px; color: #999;">
-                                ${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}
-                            </div>
-                        </div>
-                        <div class="drive-item-actions">
-                            <button class="drive-action-btn btn-view" onclick="viewPhoto(${index})">👁️</button>
-                            <button class="drive-action-btn btn-delete" onclick="deletePhoto(${index})">🗑️</button>
-                        </div>
-                    `;
-                    driveList.appendChild(item);
-                });
-            }
-
-            document.getElementById('driveModal').style.display = 'block';
+            // Show patient input for Drive search
+            document.getElementById('patientModalTitle').textContent = 'DRIVE PRETRAŽIVANJE';
+            document.getElementById('patientNumber').value = '';
+            document.getElementById('patientModal').style.display = 'block';
+            currentPhotoType = 'drive_search'; // Special type for drive search
+            
+            setTimeout(() => {
+                document.getElementById('patientNumber').focus();
+            }, 100);
         }
 
         function closeDrive() {
@@ -1026,47 +1120,4 @@
         }, { passive: false });
     </script>
 </body>
-</html> await fetch(dataUrl);
-                const blob = await response.blob();
-
-                const metadata = {
-                    name: fileName + '.jpg',
-                    parents: driveFolderId ? [driveFolderId] : undefined
-                };
-
-                const form = new FormData();
-                form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-                form.append('file', blob);
-
-                const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                    method: 'POST',
-                    headers: new Headers({
-                        'Authorization': 'Bearer ' + googleAuth.currentUser.get().getAuthResponse().access_token
-                    }),
-                    body: form
-                });
-
-                if (uploadResponse.ok) {
-                    const result = await uploadResponse.json();
-                    return result;
-                } else {
-                    throw new Error('Upload failed: ' + uploadResponse.statusText);
-                }
-            } catch (error) {
-                console.error('Upload error:', error);
-                showStatus('Greška pri upload-u na Drive: ' + error.message, 'error');
-                return false;
-            }
-        }
-
-        async function listDriveFiles(patientNumber) {
-            const signedIn = await signInToGoogle();
-            if (!signedIn) return [];
-
-            try {
-                let query = `name contains '${patientNumber}_'`;
-                if (driveFolderId) {
-                    query += ` and '${driveFolderId}' in parents`;
-                }
-
-                const response =
+</html>
