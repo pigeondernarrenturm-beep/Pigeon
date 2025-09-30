@@ -253,8 +253,8 @@
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <span>MIKROSKOPSKA SLIKA</span><span class="icon">🔬</span>
                 </button>
-                <button class="photo-btn btn-drive" onclick="openDrive()">
-                    <span>DRIVE PREGLED</span><span class="icon">☁️</span>
+                <button class="photo-btn btn-drive" onclick="window.open('https://drive.google.com/drive/folders/1XWacbQYhfMNF5E2m7llQ9-86JiL8-pQC', '_blank')">
+                    <span>OTVORI DRIVE</span><span class="icon">☁️</span>
                 </button>
             </div>
         </div>
@@ -610,81 +610,6 @@
             
             currentPhotoType = '';
             closeCamera();
-        }
-        async function openDrive() {
-            showLocalPhotos();
-        }
-        function showLocalPhotos() {
-            const driveList = document.getElementById('driveList');
-            driveList.innerHTML = '';
-            if (savedPhotos.length === 0) {
-                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
-            } else {
-                savedPhotos.forEach((photo, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'drive-item';
-                    const uploadStatus = photo.uploaded ? '☁️ Drive' : '📱 Lokalno';
-                    item.innerHTML = `
-                        <div>
-                            <div class="drive-item-name">${photo.name}</div>
-                            <div style="font-size: 12px; color: #999;">${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}</div>
-                        </div>
-                        <div class="drive-item-actions">
-                            <button class="drive-action-btn btn-view" onclick="viewPhoto(${index})">👁️</button>
-                            <button class="drive-action-btn btn-delete" onclick="deletePhoto(${index})">🗑️</button>
-                        </div>
-                    `;
-                    driveList.appendChild(item);
-                });
-            }
-            document.getElementById('driveModal').style.display = 'block';
-        }
-        function closeDrive() {
-            document.getElementById('driveModal').style.display = 'none';
-        }
-        function viewPhoto(index) {
-            const photo = savedPhotos[index];
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(`
-                <html>
-                    <head><title>${photo.name}</title></head>
-                    <body style="margin:0;padding:20px;background:#f0f0f0;text-align:center;">
-                        <h3>${photo.name}</h3>
-                        <p>Tip: ${photo.type} | Pacijent: ${photo.patient}</p>
-                        <img src="${photo.dataUrl}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2);">
-                    </body>
-                </html>
-            `);
-        }
-        function deletePhoto(index) {
-            const photo = savedPhotos[index];
-            if (confirm(`Da li želite obrisati: ${photo.name}?`)) {
-                savedPhotos.splice(index, 1);
-                localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
-                showStatus(`🗑️ Obrisana slika: ${photo.name}`, 'success');
-                const driveList = document.getElementById('driveList');
-                driveList.innerHTML = '';
-                if (savedPhotos.length === 0) {
-                    driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
-                } else {
-                    savedPhotos.forEach((photo, idx) => {
-                        const item = document.createElement('div');
-                        item.className = 'drive-item';
-                        const uploadStatus = photo.uploaded ? '☁️ Drive' : '📱 Lokalno';
-                        item.innerHTML = `
-                            <div>
-                                <div class="drive-item-name">${photo.name}</div>
-                                <div style="font-size: 12px; color: #999;">${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}</div>
-                            </div>
-                            <div class="drive-item-actions">
-                                <button class="drive-action-btn btn-view" onclick="viewPhoto(${idx})">👁️</button>
-                                <button class="drive-action-btn btn-delete" onclick="deletePhoto(${idx})">🗑️</button>
-                            </div>
-                        `;
-                        driveList.appendChild(item);
-                    });
-                }
-            }
         }
         function showStatus(message, type = 'info') {
             const status = document.getElementById('status');
