@@ -32,10 +32,23 @@
             color: white;
             padding: 20px;
             text-align: center;
+            position: relative;
         }
         .header h1 { font-size: 28px; font-weight: 300; }
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+        }
         .main-content { padding: 30px 20px; }
-        .button-grid { display: grid; gap: 15px; }
+        .button-grid { display: grid; gap: 15px; margin-bottom: 30px; }
         .photo-btn {
             display: flex;
             align-items: center;
@@ -87,16 +100,19 @@
             padding: 30px;
             width: 90%;
             max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .modal h3 { margin-bottom: 20px; text-align: center; color: #333; }
         .modal input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; }
         .modal label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        .modal small { display: block; margin-bottom: 15px; color: #666; font-size: 12px; line-height: 1.4; }
         .modal-buttons { display: flex; gap: 10px; }
         .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .btn-primary { background: #4CAF50; color: white; }
         .btn-secondary { background: #6c757d; color: white; }
         .camera-modal { background: black; }
-        .camera-container { width: 100%; height: 100vh; display: flex; flex-direction: column; }
+        .camera-container { position: relative; width: 100%; height: 100vh; display: flex; flex-direction: column; }
         .camera-header {
             background: rgba(0,0,0,0.8);
             color: white;
@@ -159,6 +175,7 @@
             cursor: pointer;
             position: relative;
             transition: all 0.3s ease;
+            margin: 0 auto;
             touch-action: manipulation;
         }
         .capture-btn:active { transform: scale(0.9); }
@@ -184,12 +201,38 @@
             pointer-events: none;
             z-index: 9999;
         }
+        .drive-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .drive-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .drive-item:last-child { border-bottom: none; }
+        .drive-item-name { font-family: monospace; color: #666; }
+        .drive-item-actions { display: flex; gap: 5px; }
+        .drive-action-btn { padding: 4px 8px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .btn-view { background: #007bff; color: white; }
+        .btn-delete { background: #dc3545; color: white; }
         @media (max-width: 480px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .main-content { padding: 20px 15px; }
             .photo-btn { padding: 18px; font-size: 16px; }
             .camera-controls { padding: 20px; }
             .capture-btn { width: 70px; height: 70px; }
+        }
+        @media (orientation: landscape) and (max-height: 600px) {
+            .camera-header { padding: 10px 20px; }
+            .camera-view { padding-bottom: 100px; }
+            .camera-controls { padding: 15px; }
         }
     </style>
 </head>
@@ -210,8 +253,8 @@
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <span>MIKROSKOPSKA SLIKA</span><span class="icon">🔬</span>
                 </button>
-                <button class="photo-btn btn-drive" onclick="window.open('https://drive.google.com/drive/folders/1XWacbQYhfMNF5E2m7llQ9-86JiL8-pQC', '_blank')">
-                    <span>OTVORI DRIVE</span><span class="icon">☁️</span>
+                <button class="photo-btn btn-drive" onclick="openDrive()">
+                    <span>DRIVE PREGLED</span><span class="icon">☁️</span>
                 </button>
             </div>
         </div>
@@ -244,7 +287,7 @@
             </div>
             <div class="camera-view">
                 <video id="video" autoplay playsinline></video>
-                <div class="camera-overlay">
+                <div class="camera-overlay" id="cameraOverlay">
                     <div id="flashIndicator" style="display: none;">⚡ Blic ON</div>
                     <div id="portraitIndicator" style="display: none;">📷 Portrait mode</div>
                     <div id="zoomIndicator">🔍 1x</div>
@@ -255,36 +298,147 @@
             </div>
         </div>
     </div>
+    <div id="driveModal" class="modal">
+        <div class="modal-content">
+            <h3>Drive slike</h3>
+            <div class="drive-list" id="driveList">
+                <div style="text-align: center; color: #666; padding: 20px;">Nema slika</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn btn-secondary" onclick="closeDrive()">Zatvori</button>
+            </div>
+        </div>
+    </div>
     <div class="flash" id="flash"></div>
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyw4inB1l-OcEEhBGndJArTztWGHx7mS6joz_Fad3zUj2OWAUNwGi6KThB9zBDVjOQL/exec';
+        
         let currentPhotoType = '';
         let currentZoom = '1x';
         let stream = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
+
+        async function initializeGoogleAPI() {
+            if (!API_KEY || !CLIENT_ID) {
+                showStatus('Potrebno je postaviti Google API credentials u opcijama', 'error');
+                return false;
+            }
+            if (!gapiReady || typeof gapi === 'undefined') {
+                await new Promise(resolve => {
+                    const checkGapi = setInterval(() => {
+                        if (gapiReady && typeof gapi !== 'undefined') {
+                            clearInterval(checkGapi);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            }
+            try {
+                await new Promise((resolve) => {
+                    gapi.load('client:auth2', resolve);
+                });
+                await initializeGapiClient();
+                return true;
+            } catch (error) {
+                console.error('Error loading Google API:', error);
+                showStatus('Greška pri učitavanju Google API', 'error');
+                return false;
+            }
+        }
+
+        async function initializeGapiClient() {
+            try {
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    clientId: CLIENT_ID,
+                    discoveryDocs: [DISCOVERY_DOC],
+                    scope: SCOPES
+                });
+                googleAuth = gapi.auth2.getAuthInstance();
+                isGoogleApiLoaded = true;
+                showStatus('Google Drive API uspješno učitan', 'success');
+            } catch (error) {
+                console.error('Error initializing Google API:', error);
+                showStatus('Greška pri inicijalizaciji Google API: ' + error.message, 'error');
+            }
+        }
+
+        async function signInToGoogle() {
+            if (!isGoogleApiLoaded) {
+                const success = await initializeGoogleAPI();
+                if (!success) return false;
+            }
+            try {
+                if (!googleAuth.isSignedIn.get()) {
+                    const options = {
+                        prompt: 'consent',
+                        ux_mode: 'redirect',
+                        redirect_uri: window.location.origin + window.location.pathname
+                    };
+                    await googleAuth.signIn(options);
+                }
+                return true;
+            } catch (error) {
+                console.error('Sign in error:', error);
+                showStatus('Greška pri prijavljivanju: ' + (error.error || error.message), 'error');
+                return false;
+            }
+        }
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         fileName: fileName,
                         imageData: dataUrl
                     })
                 });
+                
+                // no-cors mode ne vraća response, ali to je OK - Apps Script će primiti podatke
                 console.log('Upload request sent to Apps Script');
                 return { success: true };
+                
             } catch (error) {
                 console.error('Upload error:', error);
                 return false;
             }
         }
 
+        async function listAllDriveFiles() {
+            const signedIn = await signInToGoogle();
+            if (!signedIn) return [];
+            try {
+                let query = "mimeType='image/jpeg'";
+                if (driveFolderId) {
+                    query += ` and '${driveFolderId}' in parents`;
+                }
+                const response = await gapi.client.drive.files.list({
+                    q: query,
+                    fields: 'files(id,name,webViewLink,webContentLink,thumbnailLink)',
+                    orderBy: 'name desc',
+                    pageSize: 100
+                });
+                return response.result.files || [];
+            } catch (error) {
+                console.error('Error listing files:', error);
+                showStatus('Greška pri učitavanju Drive fajlova: ' + error.message, 'error');
+                return [];
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            if (API_KEY && CLIENT_ID) {
+                initializeGoogleAPI();
+            }
             document.getElementById('patientNumber').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') confirmPatientAndStartCamera();
+                if (e.key === 'Enter') {
+                    confirmPatientAndStartCamera();
+                }
             });
             document.getElementById('patientNumber').addEventListener('focus', function() {
                 setTimeout(() => {
@@ -293,6 +447,30 @@
             });
         });
 
+        function openSettings() {
+            document.getElementById('apiKey').value = API_KEY;
+            document.getElementById('clientId').value = CLIENT_ID;
+            document.getElementById('driveFolder').value = driveFolderId;
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+        function saveSettings() {
+            API_KEY = document.getElementById('apiKey').value.trim();
+            CLIENT_ID = document.getElementById('clientId').value.trim();
+            driveFolderId = document.getElementById('driveFolder').value.trim();
+            localStorage.setItem('pigeonApiKey', API_KEY);
+            localStorage.setItem('pigeonClientId', CLIENT_ID);
+            localStorage.setItem('pigeonDriveFolder', driveFolderId);
+            if (API_KEY && CLIENT_ID) {
+                initializeGoogleAPI();
+                showStatus('Opcije sačuvane - Google Drive API je spreman', 'success');
+            } else {
+                showStatus('Opcije sačuvane', 'success');
+            }
+            closeSettings();
+        }
         function showPatientInput(photoType) {
             currentPhotoType = photoType;
             const titles = {
@@ -303,13 +481,13 @@
             document.getElementById('patientModalTitle').textContent = titles[photoType];
             document.getElementById('patientNumber').value = '';
             document.getElementById('patientModal').style.display = 'block';
-            setTimeout(() => { document.getElementById('patientNumber').focus(); }, 100);
+            setTimeout(() => {
+                document.getElementById('patientNumber').focus();
+            }, 100);
         }
-
         function closePatientInput() {
             document.getElementById('patientModal').style.display = 'none';
         }
-
         function confirmPatientAndStartCamera() {
             const patientNumber = document.getElementById('patientNumber').value.trim();
             if (!patientNumber) {
@@ -319,7 +497,6 @@
             closePatientInput();
             startCamera(currentPhotoType, patientNumber);
         }
-
         async function startCamera(photoType, patientNumber) {
             document.getElementById('cameraPatient').textContent = patientNumber;
             const titles = {
@@ -329,17 +506,22 @@
             };
             document.getElementById('cameraTitle').textContent = titles[photoType];
             const zoomControls = document.getElementById('zoomControls');
-            zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
+            if (photoType === 'micro') {
+                zoomControls.style.display = 'flex';
+            } else {
+                zoomControls.style.display = 'none';
+            }
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
+                const constraints = {
                     video: {
                         facingMode: 'environment',
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     }
-                });
+                };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
                 document.getElementById('video').srcObject = stream;
                 document.getElementById('cameraModal').style.display = 'block';
             } catch (error) {
@@ -347,14 +529,14 @@
                 showStatus('Greška pri pristupu kameri: ' + error.message, 'error');
             }
         }
-
         function setZoom(zoom) {
             currentZoom = zoom;
             document.getElementById('zoomIndicator').textContent = `🔍 ${zoom}`;
-            document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
             event.target.classList.add('active');
         }
-
         function closeCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -363,7 +545,6 @@
             document.getElementById('cameraModal').style.display = 'none';
             currentZoom = '1x';
         }
-
         async function capturePhoto() {
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
@@ -371,19 +552,18 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0);
-
             if (currentPhotoType === 'uputnica') {
                 const flash = document.getElementById('flash');
                 flash.style.opacity = '0.8';
-                setTimeout(() => { flash.style.opacity = '0'; }, 200);
+                setTimeout(() => {
+                    flash.style.opacity = '0';
+                }, 200);
             }
-
             const patientNumber = document.getElementById('cameraPatient').textContent;
             const today = new Date();
             const dateStr = String(today.getDate()).padStart(2, '0') + '.' + 
                           String(today.getMonth() + 1).padStart(2, '0') + '.' + 
                           String(today.getFullYear()).slice(-2);
-            
             let fileName = `${patientNumber}_${currentPhotoType}_${dateStr}`;
             let counter = 1;
             let originalFileName = fileName;
@@ -391,7 +571,6 @@
                 counter++;
                 fileName = `${originalFileName}(${counter})`;
             }
-
             const photoData = {
                 name: fileName,
                 type: currentPhotoType,
@@ -401,7 +580,6 @@
                 zoom: currentZoom,
                 uploaded: false
             };
-
             savedPhotos.push(photoData);
             localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
             
@@ -433,7 +611,81 @@
             currentPhotoType = '';
             closeCamera();
         }
-
+        async function openDrive() {
+            showLocalPhotos();
+        }
+        function showLocalPhotos() {
+            const driveList = document.getElementById('driveList');
+            driveList.innerHTML = '';
+            if (savedPhotos.length === 0) {
+                driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
+            } else {
+                savedPhotos.forEach((photo, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'drive-item';
+                    const uploadStatus = photo.uploaded ? '☁️ Drive' : '📱 Lokalno';
+                    item.innerHTML = `
+                        <div>
+                            <div class="drive-item-name">${photo.name}</div>
+                            <div style="font-size: 12px; color: #999;">${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}</div>
+                        </div>
+                        <div class="drive-item-actions">
+                            <button class="drive-action-btn btn-view" onclick="viewPhoto(${index})">👁️</button>
+                            <button class="drive-action-btn btn-delete" onclick="deletePhoto(${index})">🗑️</button>
+                        </div>
+                    `;
+                    driveList.appendChild(item);
+                });
+            }
+            document.getElementById('driveModal').style.display = 'block';
+        }
+        function closeDrive() {
+            document.getElementById('driveModal').style.display = 'none';
+        }
+        function viewPhoto(index) {
+            const photo = savedPhotos[index];
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(`
+                <html>
+                    <head><title>${photo.name}</title></head>
+                    <body style="margin:0;padding:20px;background:#f0f0f0;text-align:center;">
+                        <h3>${photo.name}</h3>
+                        <p>Tip: ${photo.type} | Pacijent: ${photo.patient}</p>
+                        <img src="${photo.dataUrl}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+                    </body>
+                </html>
+            `);
+        }
+        function deletePhoto(index) {
+            const photo = savedPhotos[index];
+            if (confirm(`Da li želite obrisati: ${photo.name}?`)) {
+                savedPhotos.splice(index, 1);
+                localStorage.setItem('pigeonPhotos', JSON.stringify(savedPhotos));
+                showStatus(`🗑️ Obrisana slika: ${photo.name}`, 'success');
+                const driveList = document.getElementById('driveList');
+                driveList.innerHTML = '';
+                if (savedPhotos.length === 0) {
+                    driveList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nema lokalnih slika</div>';
+                } else {
+                    savedPhotos.forEach((photo, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'drive-item';
+                        const uploadStatus = photo.uploaded ? '☁️ Drive' : '📱 Lokalno';
+                        item.innerHTML = `
+                            <div>
+                                <div class="drive-item-name">${photo.name}</div>
+                                <div style="font-size: 12px; color: #999;">${photo.type} • ${uploadStatus} • ${new Date(photo.timestamp).toLocaleString('sr-RS')}</div>
+                            </div>
+                            <div class="drive-item-actions">
+                                <button class="drive-action-btn btn-view" onclick="viewPhoto(${idx})">👁️</button>
+                                <button class="drive-action-btn btn-delete" onclick="deletePhoto(${idx})">🗑️</button>
+                            </div>
+                        `;
+                        driveList.appendChild(item);
+                    });
+                }
+            }
+        }
         function showStatus(message, type = 'info') {
             const status = document.getElementById('status');
             status.textContent = message;
@@ -441,9 +693,8 @@
             status.style.display = 'block';
             setTimeout(() => { status.style.display = 'none'; }, 4000);
         }
-
         document.addEventListener('touchmove', function (event) {
-            if (event.scale !== 1) event.preventDefault();
+            if (event.scale !== 1) { event.preventDefault(); }
         }, { passive: false });
     </script>
 </body>
