@@ -17,14 +17,17 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 10px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
         }
         .container {
-            max-width: 400px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
         .header {
@@ -32,25 +35,40 @@
             color: white;
             padding: 20px;
             text-align: center;
+            flex-shrink: 0;
         }
         .header h1 { font-size: 28px; font-weight: 300; }
-        .main-content { padding: 30px 20px; }
-        .button-grid { display: grid; gap: 15px; }
+        .main-content { 
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+        .button-grid { 
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            height: 100%;
+        }
         .photo-btn {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 20px;
+            padding: 40px 30px;
             border: none;
-            border-radius: 15px;
-            font-size: 18px;
+            border-bottom: 3px solid rgba(0,0,0,0.1);
+            font-size: 22px;
             font-weight: 600;
             color: white;
             cursor: pointer;
             transition: all 0.3s ease;
+            flex: 1;
         }
-        .photo-btn:active { transform: scale(0.98); }
-        .photo-btn .icon { font-size: 24px; }
+        .photo-btn:last-child {
+            border-bottom: none;
+        }
+        .photo-btn:active { transform: scale(0.98); opacity: 0.9; }
+        .photo-btn .icon { font-size: 32px; }
         .btn-uputnica { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); }
         .btn-macro { background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
         .btn-micro { background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%); }
@@ -62,7 +80,14 @@
             text-align: center;
             color: #666;
             font-size: 14px;
-            margin-bottom: 20px;
+            margin: 15px;
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            min-width: 300px;
+            max-width: 90%;
         }
         .status.success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
         .status.error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
@@ -88,7 +113,7 @@
             max-width: 400px;
         }
         .modal h3 { margin-bottom: 20px; text-align: center; color: #333; }
-        .modal input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; }
+        .modal input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; font-size: 16px; }
         .modal label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
         .modal-buttons { display: flex; gap: 10px; }
         .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
@@ -185,9 +210,8 @@
             z-index: 9999;
         }
         @media (max-width: 480px) {
-            .container { margin: 0; border-radius: 0; min-height: 100vh; }
-            .main-content { padding: 20px 15px; }
-            .photo-btn { padding: 18px; font-size: 16px; }
+            .photo-btn { padding: 35px 25px; font-size: 20px; }
+            .photo-btn .icon { font-size: 30px; }
             .camera-controls { padding: 20px; }
             .capture-btn { width: 70px; height: 70px; }
             .camera-header { padding: 12px; }
