@@ -54,7 +54,6 @@
         .btn-uputnica { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); }
         .btn-macro { background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
         .btn-micro { background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%); }
-        .btn-drive { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .status {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -185,17 +184,6 @@
             pointer-events: none;
             z-index: 9999;
         }
-        .drive-info {
-            background: #e3f2fd;
-            border: 1px solid #90caf9;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            color: #1565c0;
-            text-align: center;
-        }
-        .drive-info strong { display: block; margin-bottom: 5px; }
         @media (max-width: 480px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .main-content { padding: 20px 15px; }
@@ -225,17 +213,6 @@
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <span>MIKROSKOPSKA SLIKA</span><span class="icon">🔬</span>
                 </button>
-                <button class="photo-btn btn-drive" onclick="showDriveInfo()">
-                    <span>OTVORI DRIVE</span><span class="icon">☁️</span>
-                </button>
-            </div>
-            <div class="drive-info" id="driveInfo" style="display: none;">
-                <strong>📱 Korak 1:</strong>
-                Otvori Chrome → idi na Drive folder "Slike"<br>
-                <strong>📌 Korak 2:</strong>
-                Tri tačke (⋮) → "Add to Home screen"<br>
-                <strong>✅ Korak 3:</strong>
-                Sačuvaj kao "Slike" i koristi taj shortcut
             </div>
         </div>
     </div>
@@ -286,7 +263,6 @@
         let stream = null;
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
-        let driveInfoShown = localStorage.getItem('driveInfoShown') === 'true';
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
@@ -304,19 +280,6 @@
             } catch (error) {
                 console.error('Upload error:', error);
                 return false;
-            }
-        }
-
-        function showDriveInfo() {
-            const driveInfo = document.getElementById('driveInfo');
-            if (driveInfo.style.display === 'none') {
-                driveInfo.style.display = 'block';
-                if (!driveInfoShown) {
-                    localStorage.setItem('driveInfoShown', 'true');
-                    driveInfoShown = true;
-                }
-            } else {
-                driveInfo.style.display = 'none';
             }
         }
 
