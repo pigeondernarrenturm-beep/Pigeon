@@ -100,15 +100,16 @@
         .camera-header {
             background: rgba(0,0,0,0.8);
             color: white;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .camera-info h3 { margin-bottom: 5px; }
+        .camera-info h3 { margin-bottom: 3px; font-size: 14px; font-weight: 600; }
+        .camera-info p { font-size: 12px; }
         .camera-settings { display: flex; align-items: center; gap: 15px; }
         .zoom-controls { display: flex; background: rgba(255,255,255,0.2); border-radius: 20px; overflow: hidden; }
-        .zoom-btn { background: none; border: none; color: white; padding: 8px 15px; cursor: pointer; }
+        .zoom-btn { background: none; border: none; color: white; padding: 8px 15px; cursor: pointer; font-size: 14px; }
         .zoom-btn.active { background: rgba(255,255,255,0.3); }
         .close-camera {
             background: rgba(255,255,255,0.2);
@@ -190,6 +191,9 @@
             .photo-btn { padding: 18px; font-size: 16px; }
             .camera-controls { padding: 20px; }
             .capture-btn { width: 70px; height: 70px; }
+            .camera-header { padding: 12px; }
+            .camera-info h3 { font-size: 13px; }
+            .camera-info p { font-size: 11px; }
         }
     </style>
 </head>
@@ -210,7 +214,7 @@
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <span>MIKROSKOPSKA SLIKA</span><span class="icon">🔬</span>
                 </button>
-                <button class="photo-btn btn-drive" onclick="window.open('https://drive.google.com/drive/folders/1XWacbQYhfMNF5E2m7llQ9-86JiL8-pQC', '_blank')">
+                <button class="photo-btn btn-drive" onclick="window.open('https://drive.google.com/drive/folders/1XWacbQYhfMNF5E2m7llQ9-86JiL8-pQC?authuser=pigeon.der.narrenturm@gmail.com', '_blank')">
                     <span>OTVORI DRIVE</span><span class="icon">☁️</span>
                 </button>
             </div>
@@ -236,8 +240,8 @@
                 </div>
                 <div class="camera-settings">
                     <div class="zoom-controls" id="zoomControls" style="display: none;">
-                        <button class="zoom-btn active" onclick="setZoom('1x')">1x</button>
-                        <button class="zoom-btn" onclick="setZoom('2x')">2x</button>
+                        <button class="zoom-btn active" data-zoom="1x" onclick="setZoom('1x')">1x</button>
+                        <button class="zoom-btn" data-zoom="2x" onclick="setZoom('2x')">2x</button>
                     </div>
                     <button class="close-camera" onclick="closeCamera()">✕</button>
                 </div>
@@ -261,6 +265,7 @@
         let currentPhotoType = '';
         let currentZoom = '1x';
         let stream = null;
+        let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
         async function uploadToDrive(fileName, dataUrl) {
@@ -332,6 +337,14 @@
             zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
+            
+            // Reset zoom
+            currentZoom = '1x';
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.zoom === '1x');
+            });
+            document.getElementById('zoomIndicator').textContent = '🔍 1x';
+            
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: {
@@ -340,6 +353,15 @@
                         height: { ideal: 1080 }
                     }
                 });
+                
+                videoTrack = stream.getVideoTracks()[0];
+                const capabilities = videoTrack.getCapabilities();
+                
+                // Check if zoom is supported
+                if (capabilities.zoom) {
+                    console.log('Zoom supported:', capabilities.zoom);
+                }
+                
                 document.getElementById('video').srcObject = stream;
                 document.getElementById('cameraModal').style.display = 'block';
             } catch (error) {
@@ -348,17 +370,44 @@
             }
         }
 
-        function setZoom(zoom) {
+        async function setZoom(zoom) {
             currentZoom = zoom;
             document.getElementById('zoomIndicator').textContent = `🔍 ${zoom}`;
-            document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            
+            // Update active button
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.zoom === zoom);
+            });
+            
+            // Try to apply zoom if supported
+            if (videoTrack) {
+                try {
+                    const capabilities = videoTrack.getCapabilities();
+                    if (capabilities.zoom) {
+                        const settings = videoTrack.getSettings();
+                        const minZoom = capabilities.zoom.min;
+                        const maxZoom = capabilities.zoom.max;
+                        
+                        let zoomValue = zoom === '1x' ? minZoom : Math.min(minZoom * 2, maxZoom);
+                        
+                        await videoTrack.applyConstraints({
+                            advanced: [{ zoom: zoomValue }]
+                        });
+                        console.log('Zoom applied:', zoomValue);
+                    } else {
+                        console.log('Zoom not supported by this device');
+                    }
+                } catch (error) {
+                    console.error('Error applying zoom:', error);
+                }
+            }
         }
 
         function closeCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
+                videoTrack = null;
             }
             document.getElementById('cameraModal').style.display = 'none';
             currentZoom = '1x';
