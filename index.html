@@ -382,13 +382,6 @@
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
-        window.addEventListener('resize', () => {
-            // No restrictions, just visual hint
-        });
-        window.addEventListener('orientationchange', () => {
-            // No restrictions, just visual hint
-        });
-
         async function uploadToDrive(fileName, dataUrl) {
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
@@ -544,11 +537,6 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-        async function capturePhoto() {
-            const video = document.getElementById('video');
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
@@ -556,7 +544,7 @@
             if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
                 ctx.save();
                 ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(Math.PI); // 180 degrees
+                ctx.rotate(Math.PI);
                 ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2);
                 ctx.restore();
             } else {
