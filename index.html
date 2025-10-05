@@ -240,15 +240,17 @@
         }
         .orientation-hint {
             position: absolute;
-            bottom: 20px;
+            bottom: 160px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.6);
             color: #ffeb3b;
             padding: 8px 12px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: 600;
             display: none;
+            white-space: nowrap;
         }
         .camera-controls {
             background: rgba(0,0,0,0.8);
@@ -553,23 +555,17 @@
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
             
-            // Determine device orientation
-            const isLandscape = window.innerWidth > window.innerHeight;
-            
-            // For macro and micro in landscape mode, we need to rotate the image
-            // because the camera feed is rotated by the browser
-            if ((currentPhotoType === 'macro' || currentPhotoType === 'micro') && !isLandscape) {
-                // Device is in portrait but we want landscape output
-                // So we rotate the camera feed 90 degrees
+            // For macro and micro, rotate 270 degrees (or -90 degrees) to get correct landscape orientation
+            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
                 canvas.width = videoHeight;
                 canvas.height = videoWidth;
                 ctx.save();
                 ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(90 * Math.PI / 180);
+                ctx.rotate(-90 * Math.PI / 180); // Rotate -90 degrees (270 degrees)
                 ctx.drawImage(video, -videoWidth / 2, -videoHeight / 2, videoWidth, videoHeight);
                 ctx.restore();
             } else {
-                // Save as is (no rotation needed)
+                // Uputnica - save as is (no rotation)
                 canvas.width = videoWidth;
                 canvas.height = videoHeight;
                 ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
