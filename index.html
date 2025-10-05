@@ -238,19 +238,16 @@
             border-radius: 8px;
             font-size: 14px;
         }
-        .orientation-hint {
+        .landscape-hint {
             position: absolute;
             bottom: 160px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 20px;
             background: rgba(0,0,0,0.6);
             color: #ffeb3b;
             padding: 8px 12px;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 12px;
             display: none;
-            white-space: nowrap;
         }
         .camera-controls {
             background: rgba(0,0,0,0.8);
@@ -369,7 +366,7 @@
                     <div id="portraitIndicator" style="display: none;">📷 Portrait mode</div>
                     <div id="zoomIndicator">🔍 1x</div>
                 </div>
-                <div class="orientation-hint" id="orientationHint">🔱 Slikaj horizontalno</div>
+                <div class="landscape-hint" id="landscapeHint">📱 Slikaj horizontalno</div>
             </div>
             <div class="camera-controls">
                 <button class="capture-btn" id="captureBtn" onclick="capturePhoto()"></button>
@@ -384,6 +381,13 @@
         let stream = null;
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
+
+        window.addEventListener('resize', () => {
+            // No restrictions, just visual hint
+        });
+        window.addEventListener('orientationchange', () => {
+            // No restrictions, just visual hint
+        });
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
@@ -455,17 +459,9 @@
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
             
-            // Show orientation hint
-            const orientationHint = document.getElementById('orientationHint');
-            if (photoType === 'uputnica') {
-                orientationHint.textContent = '📱 Slikaj uspravno';
-                orientationHint.style.display = 'block';
-            } else if (photoType === 'macro' || photoType === 'micro') {
-                orientationHint.textContent = '🔱 Slikaj horizontalno';
-                orientationHint.style.display = 'block';
-            } else {
-                orientationHint.style.display = 'none';
-            }
+            // Show landscape hint for macro and micro
+            const landscapeHint = document.getElementById('landscapeHint');
+            landscapeHint.style.display = (photoType === 'macro' || photoType === 'micro') ? 'block' : 'none';
             
             // Reset zoom
             currentZoom = '1x';
@@ -475,16 +471,13 @@
             document.getElementById('zoomIndicator').textContent = '🔍 1x';
             
             try {
-                // Request camera with specific constraints based on photo type
-                const constraints = {
+                stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'environment',
-                        width: { ideal: photoType === 'uputnica' ? 1080 : 1920 },
-                        height: { ideal: photoType === 'uputnica' ? 1920 : 1080 }
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     }
-                };
-                
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                });
                 
                 videoTrack = stream.getVideoTracks()[0];
                 const capabilities = videoTrack.getCapabilities();
@@ -542,7 +535,7 @@
                 videoTrack = null;
             }
             document.getElementById('cameraModal').style.display = 'none';
-            document.getElementById('orientationHint').style.display = 'none';
+            document.getElementById('landscapeHint').style.display = 'none';
             currentZoom = '1x';
         }
 
@@ -551,25 +544,10 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Get actual video dimensions
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            
-            // For macro and micro, rotate 270 degrees (or -90 degrees) to get correct landscape orientation
-            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
-                canvas.width = videoHeight;
-                canvas.height = videoWidth;
-                ctx.save();
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(-90 * Math.PI / 180); // Rotate -90 degrees (270 degrees)
-                ctx.drawImage(video, -videoWidth / 2, -videoHeight / 2, videoWidth, videoHeight);
-                ctx.restore();
-            } else {
-                // Uputnica - save as is (no rotation)
-                canvas.width = videoWidth;
-                canvas.height = videoHeight;
-                ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-            }
+            // Always save in current orientation (landscape for macro/micro)
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
 
             if (currentPhotoType === 'uputnica') {
                 const flash = document.getElementById('flash');
@@ -595,7 +573,7 @@
                 name: fileName,
                 type: currentPhotoType,
                 patient: patientNumber,
-                dataUrl: canvas.toDataURL('image/jpeg', 0.85),
+                dataUrl: canvas.toDataURL('image/jpeg', 0.7),
                 timestamp: new Date().toISOString(),
                 zoom: currentZoom,
                 uploaded: false
