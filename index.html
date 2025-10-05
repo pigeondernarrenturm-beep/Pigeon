@@ -382,6 +382,13 @@
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
+        window.addEventListener('resize', () => {
+            // No restrictions, just visual hint
+        });
+        window.addEventListener('orientationchange', () => {
+            // No restrictions, just visual hint
+        });
+
         async function uploadToDrive(fileName, dataUrl) {
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
@@ -537,20 +544,10 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
+            // Always save in current orientation (landscape for macro/micro)
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            
-            // For macro and micro, rotate 180 degrees
-            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
-                ctx.save();
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(Math.PI);
-                ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2);
-                ctx.restore();
-            } else {
-                // For uputnica, keep original orientation
-                ctx.drawImage(video, 0, 0);
-            }
+            ctx.drawImage(video, 0, 0);
 
             if (currentPhotoType === 'uputnica') {
                 const flash = document.getElementById('flash');
