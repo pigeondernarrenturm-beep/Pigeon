@@ -299,6 +299,10 @@
             border-radius: 50%;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
+        .capture-btn.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
         .flash {
             position: fixed;
             top: 0;
@@ -376,9 +380,13 @@
                     <div id="portraitIndicator" style="display: none;">📷 Portrait mode</div>
                     <div id="zoomIndicator">🔍 1x</div>
                 </div>
+                <div class="rotation-warning" id="rotationWarning">
+                    <span class="icon">🔄</span>
+                    <div>Rotiraj telefon horizontalno!</div>
+                </div>
             </div>
             <div class="camera-controls">
-                <button class="capture-btn" onclick="capturePhoto()"></button>
+                <button class="capture-btn" id="captureBtn" onclick="capturePhoto()"></button>
             </div>
         </div>
     </div>
@@ -390,6 +398,28 @@
         let stream = null;
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
+
+        // Check orientation for macro and micro photos
+        function checkOrientation() {
+            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
+                const isPortrait = window.innerHeight > window.innerWidth;
+                const warning = document.getElementById('rotationWarning');
+                const captureBtn = document.getElementById('captureBtn');
+                
+                if (isPortrait) {
+                    warning.style.display = 'block';
+                    captureBtn.classList.add('disabled');
+                } else {
+                    warning.style.display = 'none';
+                    captureBtn.classList.remove('disabled');
+                }
+            }
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(checkOrientation, 100);
+        });
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
@@ -487,6 +517,11 @@
                 
                 document.getElementById('video').srcObject = stream;
                 document.getElementById('cameraModal').style.display = 'block';
+                
+                // Check orientation after camera starts
+                setTimeout(() => {
+                    checkOrientation();
+                }, 200);
             } catch (error) {
                 console.error('Camera error:', error);
                 showStatus('Greška pri pristupu kameri: ' + error.message, 'error');
@@ -533,6 +568,8 @@
                 videoTrack = null;
             }
             document.getElementById('cameraModal').style.display = 'none';
+            document.getElementById('rotationWarning').style.display = 'none';
+            document.getElementById('captureBtn').classList.remove('disabled');
             currentZoom = '1x';
         }
 
@@ -541,27 +578,10 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // For macro and micro, force landscape orientation
-            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
-                const width = Math.max(video.videoWidth, video.videoHeight);
-                const height = Math.min(video.videoWidth, video.videoHeight);
-                canvas.width = width;
-                canvas.height = height;
-                
-                // If video is portrait, rotate it to landscape
-                if (video.videoWidth < video.videoHeight) {
-                    ctx.translate(width / 2, height / 2);
-                    ctx.rotate(90 * Math.PI / 180);
-                    ctx.drawImage(video, -height / 2, -width / 2, height, width);
-                } else {
-                    ctx.drawImage(video, 0, 0);
-                }
-            } else {
-                // For uputnica, keep original orientation
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0);
-            }
+            // Always save in current orientation (landscape for macro/micro)
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
 
             if (currentPhotoType === 'uputnica') {
                 const flash = document.getElementById('flash');
