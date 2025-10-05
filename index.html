@@ -238,26 +238,16 @@
             border-radius: 8px;
             font-size: 14px;
         }
-        .rotation-warning {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 59, 48, 0.95);
-            color: white;
-            padding: 30px 40px;
-            border-radius: 20px;
-            text-align: center;
-            z-index: 2000;
-            font-size: 20px;
-            font-weight: 600;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        .landscape-hint {
+            position: absolute;
+            bottom: 160px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #ffeb3b;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
             display: none;
-        }
-        .rotation-warning .icon {
-            font-size: 60px;
-            margin-bottom: 15px;
-            display: block;
         }
         .camera-controls {
             background: rgba(0,0,0,0.8);
@@ -298,10 +288,6 @@
             background: white;
             border-radius: 50%;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .capture-btn.disabled {
-            opacity: 0.3;
-            pointer-events: none;
         }
         .flash {
             position: fixed;
@@ -380,10 +366,7 @@
                     <div id="portraitIndicator" style="display: none;">📷 Portrait mode</div>
                     <div id="zoomIndicator">🔍 1x</div>
                 </div>
-                <div class="rotation-warning" id="rotationWarning">
-                    <span class="icon">🔄</span>
-                    <div>Rotiraj telefon horizontalno!</div>
-                </div>
+                <div class="landscape-hint" id="landscapeHint">📱 Slikaj horizontalno</div>
             </div>
             <div class="camera-controls">
                 <button class="capture-btn" id="captureBtn" onclick="capturePhoto()"></button>
@@ -399,26 +382,11 @@
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
-        // Check orientation for macro and micro photos
-        function checkOrientation() {
-            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
-                const isPortrait = window.innerHeight > window.innerWidth;
-                const warning = document.getElementById('rotationWarning');
-                const captureBtn = document.getElementById('captureBtn');
-                
-                if (isPortrait) {
-                    warning.style.display = 'block';
-                    captureBtn.classList.add('disabled');
-                } else {
-                    warning.style.display = 'none';
-                    captureBtn.classList.remove('disabled');
-                }
-            }
-        }
-
-        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('resize', () => {
+            // No restrictions, just visual hint
+        });
         window.addEventListener('orientationchange', () => {
-            setTimeout(checkOrientation, 100);
+            // No restrictions, just visual hint
         });
 
         async function uploadToDrive(fileName, dataUrl) {
@@ -491,6 +459,10 @@
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
             
+            // Show landscape hint for macro and micro
+            const landscapeHint = document.getElementById('landscapeHint');
+            landscapeHint.style.display = (photoType === 'macro' || photoType === 'micro') ? 'block' : 'none';
+            
             // Reset zoom
             currentZoom = '1x';
             document.querySelectorAll('.zoom-btn').forEach(btn => {
@@ -517,11 +489,6 @@
                 
                 document.getElementById('video').srcObject = stream;
                 document.getElementById('cameraModal').style.display = 'block';
-                
-                // Check orientation after camera starts
-                setTimeout(() => {
-                    checkOrientation();
-                }, 200);
             } catch (error) {
                 console.error('Camera error:', error);
                 showStatus('Greška pri pristupu kameri: ' + error.message, 'error');
@@ -568,8 +535,7 @@
                 videoTrack = null;
             }
             document.getElementById('cameraModal').style.display = 'none';
-            document.getElementById('rotationWarning').style.display = 'none';
-            document.getElementById('captureBtn').classList.remove('disabled');
+            document.getElementById('landscapeHint').style.display = 'none';
             currentZoom = '1x';
         }
 
