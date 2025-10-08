@@ -506,13 +506,24 @@
             document.getElementById('zoomIndicator').textContent = '🔍 1x';
             
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
+                let constraints = {
                     video: {
-                        facingMode: 'environment',
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
+                        facingMode: 'environment'
                     }
-                });
+                };
+
+                if (photoType === 'uputnica') {
+                    // 5:4 aspect ratio za uputnicu (portrait)
+                    constraints.video.width = { ideal: 1280 };
+                    constraints.video.height = { ideal: 1024 };
+                    constraints.video.aspectRatio = { ideal: 5/4 };
+                } else {
+                    // 16:9 aspect ratio za macro i micro (landscape)
+                    constraints.video.width = { ideal: 1920 };
+                    constraints.video.height = { ideal: 1080 };
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 videoTrack = stream.getVideoTracks()[0];
                 const capabilities = videoTrack.getCapabilities();
@@ -579,7 +590,7 @@
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
+
             if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
                 // Rotate macro and micro images by 90 degrees in the CORRECT direction
                 canvas.width = video.videoHeight;
@@ -588,10 +599,32 @@
                 ctx.rotate(-Math.PI / 2); // -90 degrees (clockwise)
                 ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
             } else {
-                // Normal capture for uputnica
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0);
+                // For uputnica, crop to 5:4 aspect ratio
+                const targetAspect = 5/4; // 5:4 aspect ratio
+                const sourceWidth = video.videoWidth;
+                const sourceHeight = video.videoHeight;
+                
+                let cropWidth, cropHeight, offsetX, offsetY;
+                
+                const sourceAspect = sourceWidth / sourceHeight;
+                
+                if (sourceAspect > targetAspect) {
+                    // Source is wider than target - crop width
+                    cropHeight = sourceHeight;
+                    cropWidth = cropHeight * targetAspect;
+                    offsetX = (sourceWidth - cropWidth) / 2;
+                    offsetY = 0;
+                } else {
+                    // Source is taller than target - crop height
+                    cropWidth = sourceWidth;
+                    cropHeight = cropWidth / targetAspect;
+                    offsetX = 0;
+                    offsetY = (sourceHeight - cropHeight) / 2;
+                }
+                
+                canvas.width = cropWidth;
+                canvas.height = cropHeight;
+                ctx.drawImage(video, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             }
 
             if (currentPhotoType === 'uputnica') {
