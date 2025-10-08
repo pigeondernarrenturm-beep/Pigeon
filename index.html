@@ -249,6 +249,17 @@
             font-size: 12px;
             display: none;
         }
+        .portrait-hint {
+            position: absolute;
+            bottom: 160px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #ffeb3b;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
         .camera-controls {
             background: rgba(0,0,0,0.8);
             padding: 30px;
@@ -367,6 +378,7 @@
                     <div id="zoomIndicator">🔍 1x</div>
                 </div>
                 <div class="landscape-hint" id="landscapeHint">📱 Slikaj horizontalno</div>
+                <div class="portrait-hint" id="portraitHint">📱 Slikaj uspravno</div>
             </div>
             <div class="camera-controls">
                 <button class="capture-btn" id="captureBtn" onclick="capturePhoto()"></button>
@@ -459,9 +471,17 @@
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
             
-            // Show landscape hint for macro and micro
+            // Show appropriate hints
             const landscapeHint = document.getElementById('landscapeHint');
-            landscapeHint.style.display = (photoType === 'macro' || photoType === 'micro') ? 'block' : 'none';
+            const portraitHint = document.getElementById('portraitHint');
+            
+            if (photoType === 'uputnica') {
+                portraitHint.style.display = 'block';
+                landscapeHint.style.display = 'none';
+            } else {
+                portraitHint.style.display = 'none';
+                landscapeHint.style.display = 'block';
+            }
             
             // Reset zoom
             currentZoom = '1x';
@@ -536,6 +556,7 @@
             }
             document.getElementById('cameraModal').style.display = 'none';
             document.getElementById('landscapeHint').style.display = 'none';
+            document.getElementById('portraitHint').style.display = 'none';
             currentZoom = '1x';
         }
 
@@ -544,10 +565,22 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Always save in current orientation (landscape for macro/micro)
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+            // Check orientation and rotate if needed for macro/micro
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            if ((currentPhotoType === 'macro' || currentPhotoType === 'micro') && isLandscape) {
+                // Rotate canvas for landscape macro/micro photos
+                canvas.width = video.videoHeight;
+                canvas.height = video.videoWidth;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI / 2);
+                ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
+            } else {
+                // Normal capture for portrait or uputnica
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+            }
 
             if (currentPhotoType === 'uputnica') {
                 const flash = document.getElementById('flash');
@@ -576,6 +609,7 @@
                 dataUrl: canvas.toDataURL('image/jpeg', 0.7),
                 timestamp: new Date().toISOString(),
                 zoom: currentZoom,
+                orientation: isLandscape ? 'landscape' : 'portrait',
                 uploaded: false
             };
 
