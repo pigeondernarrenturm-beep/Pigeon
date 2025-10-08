@@ -483,24 +483,19 @@
             document.getElementById('cameraTitle').textContent = titles[photoType];
             const zoomControls = document.getElementById('zoomControls');
             zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
+            document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
+            document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
             
             // Show appropriate hints
             const landscapeHint = document.getElementById('landscapeHint');
             const portraitHint = document.getElementById('portraitHint');
             
             if (photoType === 'uputnica') {
-                document.getElementById('flashIndicator').style.display = 'block';
-                portraitHint.style.display = 'none';
-                landscapeHint.style.display = 'none';
-            } else if (photoType === 'macro') {
-                document.getElementById('flashIndicator').style.display = 'none';
-                portraitHint.style.display = 'none';
-                landscapeHint.style.display = 'block';
-            } else { // micro
-                document.getElementById('flashIndicator').style.display = 'none';
-                document.getElementById('portraitIndicator').style.display = 'block';
                 portraitHint.style.display = 'block';
                 landscapeHint.style.display = 'none';
+            } else {
+                portraitHint.style.display = 'none';
+                landscapeHint.style.display = 'block';
             }
             
             // Reset zoom
@@ -511,24 +506,13 @@
             document.getElementById('zoomIndicator').textContent = '🔍 1x';
             
             try {
-                let constraints = {
+                stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: 'environment'
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     }
-                };
-
-                if (photoType === 'micro') {
-                    // 5:4 aspect ratio za mikroskopsku sliku (portrait)
-                    constraints.video.width = { ideal: 1280 };
-                    constraints.video.height = { ideal: 1024 };
-                    constraints.video.aspectRatio = { ideal: 5/4 };
-                } else {
-                    // 16:9 aspect ratio za uputnicu i makro
-                    constraints.video.width = { ideal: 1920 };
-                    constraints.video.height = { ideal: 1080 };
-                }
-
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                });
                 
                 videoTrack = stream.getVideoTracks()[0];
                 const capabilities = videoTrack.getCapabilities();
@@ -595,15 +579,32 @@
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-
-            if (currentPhotoType === 'micro') {
-                // For micro, use 5:4 aspect ratio in portrait mode
+            
+            if (currentPhotoType === 'macro') {
+                // Rotate macro images by 90 degrees
+                canvas.width = video.videoHeight;
+                canvas.height = video.videoWidth;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(-Math.PI / 2); // -90 degrees (clockwise)
+                ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
+            } else if (currentPhotoType === 'micro') {
+                // For micro, rotate AND crop to 5:4 aspect ratio
                 const targetAspect = 5/4; // 5:4 aspect ratio
-                const sourceWidth = video.videoWidth;
-                const sourceHeight = video.videoHeight;
+                
+                // First rotate like macro
+                canvas.width = video.videoHeight;
+                canvas.height = video.videoWidth;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(-Math.PI / 2); // -90 degrees (clockwise)
+                ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
+                
+                // Now crop to 5:4 aspect ratio
+                const rotatedCanvas = document.createElement('canvas');
+                const rotatedCtx = rotatedCanvas.getContext('2d');
                 
                 let cropWidth, cropHeight, offsetX, offsetY;
-                
+                const sourceWidth = canvas.width;
+                const sourceHeight = canvas.height;
                 const sourceAspect = sourceWidth / sourceHeight;
                 
                 if (sourceAspect > targetAspect) {
@@ -620,21 +621,28 @@
                     offsetY = (sourceHeight - cropHeight) / 2;
                 }
                 
-                canvas.width = cropWidth;
-                canvas.height = cropHeight;
-                ctx.drawImage(video, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                // Create final canvas with 5:4 aspect ratio
+                const finalCanvas = document.createElement('canvas');
+                const finalCtx = finalCanvas.getContext('2d');
+                finalCanvas.width = cropWidth;
+                finalCanvas.height = cropHeight;
+                finalCtx.drawImage(canvas, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                
+                // Replace canvas with the final cropped version
+                canvas.width = finalCanvas.width;
+                canvas.height = finalCanvas.height;
+                ctx.drawImage(finalCanvas, 0, 0);
             } else {
-                // Normal capture for uputnica and macro (NO ROTATION)
+                // Normal capture for uputnica
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0);
+            }
 
-                // Flash only for uputnica
-                if (currentPhotoType === 'uputnica') {
-                    const flash = document.getElementById('flash');
-                    flash.style.opacity = '0.8';
-                    setTimeout(() => { flash.style.opacity = '0'; }, 200);
-                }
+            if (currentPhotoType === 'uputnica') {
+                const flash = document.getElementById('flash');
+                flash.style.opacity = '0.8';
+                setTimeout(() => { flash.style.opacity = '0'; }, 200);
             }
 
             const patientNumber = document.getElementById('cameraPatient').textContent;
