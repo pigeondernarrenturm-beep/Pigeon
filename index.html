@@ -483,19 +483,24 @@
             document.getElementById('cameraTitle').textContent = titles[photoType];
             const zoomControls = document.getElementById('zoomControls');
             zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
-            document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
-            document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
             
             // Show appropriate hints
             const landscapeHint = document.getElementById('landscapeHint');
             const portraitHint = document.getElementById('portraitHint');
             
             if (photoType === 'uputnica') {
-                portraitHint.style.display = 'block';
+                document.getElementById('flashIndicator').style.display = 'block';
+                portraitHint.style.display = 'none';
                 landscapeHint.style.display = 'none';
-            } else {
+            } else if (photoType === 'macro') {
+                document.getElementById('flashIndicator').style.display = 'none';
                 portraitHint.style.display = 'none';
                 landscapeHint.style.display = 'block';
+            } else { // micro
+                document.getElementById('flashIndicator').style.display = 'none';
+                document.getElementById('portraitIndicator').style.display = 'block';
+                portraitHint.style.display = 'block';
+                landscapeHint.style.display = 'none';
             }
             
             // Reset zoom
@@ -512,13 +517,13 @@
                     }
                 };
 
-                if (photoType === 'uputnica') {
-                    // 5:4 aspect ratio za uputnicu (portrait)
+                if (photoType === 'micro') {
+                    // 5:4 aspect ratio za mikroskopsku sliku (portrait)
                     constraints.video.width = { ideal: 1280 };
                     constraints.video.height = { ideal: 1024 };
                     constraints.video.aspectRatio = { ideal: 5/4 };
                 } else {
-                    // 16:9 aspect ratio za macro i micro (landscape)
+                    // 16:9 aspect ratio za uputnicu i makro
                     constraints.video.width = { ideal: 1920 };
                     constraints.video.height = { ideal: 1080 };
                 }
@@ -591,15 +596,15 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
-                // Rotate macro and micro images by 90 degrees in the CORRECT direction
+            if (currentPhotoType === 'macro') {
+                // Rotate macro images by 90 degrees to landscape
                 canvas.width = video.videoHeight;
                 canvas.height = video.videoWidth;
                 ctx.translate(canvas.width / 2, canvas.height / 2);
                 ctx.rotate(-Math.PI / 2); // -90 degrees (clockwise)
                 ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
-            } else {
-                // For uputnica, crop to 5:4 aspect ratio
+            } else if (currentPhotoType === 'micro') {
+                // For micro, use 5:4 aspect ratio in portrait mode
                 const targetAspect = 5/4; // 5:4 aspect ratio
                 const sourceWidth = video.videoWidth;
                 const sourceHeight = video.videoHeight;
@@ -625,9 +630,12 @@
                 canvas.width = cropWidth;
                 canvas.height = cropHeight;
                 ctx.drawImage(video, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-            }
+            } else {
+                // Normal capture for uputnica (with flash)
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
 
-            if (currentPhotoType === 'uputnica') {
                 const flash = document.getElementById('flash');
                 flash.style.opacity = '0.8';
                 setTimeout(() => { flash.style.opacity = '0'; }, 200);
