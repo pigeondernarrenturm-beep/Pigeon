@@ -580,15 +580,12 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Check orientation and rotate if needed for macro/micro
-            const isLandscape = window.innerWidth > window.innerHeight;
-            
             if (currentPhotoType === 'macro' || currentPhotoType === 'micro') {
-                // Always rotate macro and micro images by 180 degrees
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                // Rotate macro and micro images by 90 degrees in the CORRECT direction
+                canvas.width = video.videoHeight;
+                canvas.height = video.videoWidth;
                 ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(Math.PI); // 180 degrees
+                ctx.rotate(-Math.PI / 2); // -90 degrees (clockwise)
                 ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
             } else {
                 // Normal capture for uputnica
@@ -624,7 +621,6 @@
                 dataUrl: canvas.toDataURL('image/jpeg', 0.7),
                 timestamp: new Date().toISOString(),
                 zoom: currentZoom,
-                orientation: isLandscape ? 'landscape' : 'portrait',
                 uploaded: false
             };
 
