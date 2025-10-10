@@ -698,7 +698,8 @@
                 }
             }
             
-            // Camera stays open - only closes when user clicks X button
+            currentPhotoType = '';
+            closeCamera();
         }
 
         function showStatus(message, type = 'info') {
