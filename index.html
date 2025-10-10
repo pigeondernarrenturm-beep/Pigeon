@@ -573,6 +573,7 @@
             document.getElementById('landscapeHint').style.display = 'none';
             document.getElementById('portraitHint').style.display = 'none';
             currentZoom = '1x';
+            currentPhotoType = '';
         }
 
         async function capturePhoto() {
@@ -697,8 +698,7 @@
                 }
             }
             
-            currentPhotoType = '';
-            closeCamera();
+            // Camera stays open - only closes when user clicks X button
         }
 
         function showStatus(message, type = 'info') {
@@ -712,6 +712,4 @@
         document.addEventListener('touchmove', function (event) {
             if (event.scale !== 1) event.preventDefault();
         }, { passive: false });
-    </script>
-</body>
-</html>
+    
