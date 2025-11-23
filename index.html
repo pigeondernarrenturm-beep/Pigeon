@@ -113,6 +113,13 @@
         .btn-micro { 
             background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
         }
+
+        /* ROTIRANA DUGMAD za MAKRO i MIKRO */
+        .rotated-btn {
+            transform: rotate(90deg);
+            transform-origin: center center;
+        }
+
         .status {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -155,6 +162,16 @@
             max-width: 400px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
+
+        /* ROTIRAN MODAL za unos broja pacijenta (macro/micro) */
+        .modal-content.landscape {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(90deg);
+            max-width: none;
+            width: 80vh;
+        }
+
         .modal h3 { margin-bottom: 20px; text-align: center; color: #333; }
         .modal input { 
             width: 100%; 
@@ -238,30 +255,6 @@
             border-radius: 8px;
             font-size: 14px;
         }
-        .landscape-hint {
-            position: absolute;
-            bottom: 160px;
-            left: 10px;
-            background: rgba(0,0,0,0.6);
-            color: #ffeb3b;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 11px;
-            display: none;
-            z-index: 1002;
-        }
-        .portrait-hint {
-            position: absolute;
-            bottom: 160px;
-            left: 10px;
-            background: rgba(0,0,0,0.6);
-            color: #ffeb3b;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 11px;
-            display: none;
-            z-index: 1002;
-        }
         .camera-controls {
             background: rgba(0,0,0,0.8);
             padding: 30px;
@@ -323,19 +316,8 @@
             .camera-header { padding: 12px; }
             .camera-info h3 { font-size: 13px; }
             .camera-info p { font-size: 11px; }
-            .landscape-hint, .portrait-hint {
-                left: 10px;
-                bottom: 150px;
-                font-size: 10px;
-            }
         }
         @media (max-width: 360px) {
-            .landscape-hint, .portrait-hint {
-                left: 5px;
-                bottom: 140px;
-                font-size: 9px;
-                padding: 6px 10px;
-            }
         }
     </style>
 </head>
@@ -350,17 +332,18 @@
                 <button class="photo-btn btn-uputnica" onclick="showPatientInput('uputnica')">
                     <span>UPUTNICA</span><span class="icon">📄</span>
                 </button>
-                <button class="photo-btn btn-macro" onclick="showPatientInput('macro')">
+                <button class="photo-btn btn-macro rotated-btn" onclick="showPatientInput('macro')">
                     <span>MAKROSKOPSKA SLIKA</span><span class="icon">📷</span>
                 </button>
-                <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
+                <button class="photo-btn btn-micro rotated-btn" onclick="showPatientInput('micro')">
                     <span>MIKROSKOPSKA SLIKA</span><span class="icon">🔬</span>
                 </button>
             </div>
         </div>
     </div>
+
     <div id="patientModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" id="patientModalContent">
             <h3 id="patientModalTitle">UPUTNICA</h3>
             <label for="patientNumber">Broj pacijenta:</label>
             <input type="text" id="patientNumber" placeholder="Unesite broj pacijenta..." autofocus>
@@ -370,6 +353,7 @@
             </div>
         </div>
     </div>
+
     <div id="cameraModal" class="modal camera-modal">
         <div class="camera-container">
             <div class="camera-header">
@@ -389,18 +373,17 @@
                 <video id="video" autoplay playsinline></video>
                 <div class="camera-overlay">
                     <div id="flashIndicator" style="display: none;">⚡ Blic ON</div>
-                    <div id="portraitIndicator" style="display: none;">📷 Portrait mode</div>
                     <div id="zoomIndicator">🔍 1x</div>
                 </div>
-                <div class="landscape-hint" id="landscapeHint">📱 Slikaj horizontalno</div>
-                <div class="portrait-hint" id="portraitHint">📱 Slikaj uspravno</div>
             </div>
             <div class="camera-controls">
                 <button class="capture-btn" id="captureBtn" onclick="capturePhoto()"></button>
             </div>
         </div>
     </div>
+
     <div class="flash" id="flash"></div>
+
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1KNdNc74DbdauCuV0YqQur-8iK0MGrf3mVacpTduuUFeqAtx3M190z-7gLJbNgAjM/exec';
         let currentPhotoType = '';
@@ -455,6 +438,15 @@
             };
             document.getElementById('patientModalTitle').textContent = titles[photoType];
             document.getElementById('patientNumber').value = '';
+
+            // rotiraj modal samo za makro/mikro
+            const modalContent = document.getElementById('patientModalContent');
+            if (photoType === 'macro' || photoType === 'micro') {
+                modalContent.classList.add('landscape');
+            } else {
+                modalContent.classList.remove('landscape');
+            }
+
             document.getElementById('patientModal').style.display = 'block';
             setTimeout(() => { document.getElementById('patientNumber').focus(); }, 100);
         }
@@ -484,19 +476,6 @@
             const zoomControls = document.getElementById('zoomControls');
             zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
-            document.getElementById('portraitIndicator').style.display = photoType === 'micro' ? 'block' : 'none';
-            
-            // Show appropriate hints
-            const landscapeHint = document.getElementById('landscapeHint');
-            const portraitHint = document.getElementById('portraitHint');
-            
-            if (photoType === 'uputnica') {
-                portraitHint.style.display = 'block';
-                landscapeHint.style.display = 'none';
-            } else {
-                portraitHint.style.display = 'none';
-                landscapeHint.style.display = 'block';
-            }
             
             // Reset zoom
             currentZoom = '1x';
@@ -570,8 +549,6 @@
                 videoTrack = null;
             }
             document.getElementById('cameraModal').style.display = 'none';
-            document.getElementById('landscapeHint').style.display = 'none';
-            document.getElementById('portraitHint').style.display = 'none';
             currentZoom = '1x';
             currentPhotoType = '';
         }
@@ -697,8 +674,6 @@
                     }
                 }
             }
-            
-            
         }
 
         function showStatus(message, type = 'info') {
