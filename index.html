@@ -52,15 +52,15 @@
         .button-grid { 
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 0;
             height: 100%;
             padding: 15px;
         }
         .photo-btn {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 40px 35px;
+            justify-content: space-between;
+            padding: 60px 35px;
             border: none;
             border-radius: 20px;
             font-size: 26px;
@@ -69,6 +69,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             flex: 1;
+            margin-bottom: 15px;
             position: relative;
             box-shadow: 
                 0 8px 16px rgba(0,0,0,0.2),
@@ -77,6 +78,9 @@
                 inset 0 2px 0 rgba(255,255,255,0.3);
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
             overflow: hidden;
+        }
+        .photo-btn:last-child {
+            margin-bottom: 0;
         }
         .photo-btn:active { 
             transform: translateY(4px);
@@ -97,7 +101,7 @@
             background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%);
             pointer-events: none;
         }
-        .photo-btn .icon { 
+        .icon { 
             font-size: 42px; 
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
@@ -106,35 +110,53 @@
         }
         .btn-macro { 
             background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-            padding-top: 60px;
-            padding-bottom: 60px; /* deblje dugme */
+            padding-top: 80px;
+            padding-bottom: 80px;
         }
         .btn-micro { 
             background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
-            padding-top: 60px;
-            padding-bottom: 60px; /* deblje dugme */
+            padding-top: 80px;
+            padding-bottom: 80px;
         }
 
-        /* Sadržaj za makro/mikro – rotiran, manji tekst, SLIKA u novi red ispod ikonice */
-        .rotated-inner {
+        /* Unutrašnji layout za UPUTNICA – klasičan */
+        .btn-uputnica-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        /* Unutrašnji layout za MAKRO / MIKRO */
+        .mm-inner {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            width: 100%;
+        }
+        /* Rotirani blok: ikona + "MAKROSKOPSKA" / "MIKROSKOPSKA" */
+        .mm-rot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             transform: rotate(90deg);
             transform-origin: center center;
-            gap: 4px;
         }
-        .btn-label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            line-height: 1.1;
-        }
-        .btn-label .line {
-            display: block;
-            font-size: 18px; /* manji tekst za makro/mikro */
+        .mm-rot .mm-label {
+            font-size: 18px;
             font-weight: 700;
+        }
+        .mm-rot .icon {
+            /* ostaje 42px iz .icon */
+        }
+        /* Riječ SLIKA u novom redu ispod zarotirane ikone */
+        .mm-slika {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
         }
 
         .status {
@@ -179,12 +201,13 @@
             max-width: 400px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
-        /* Rotiran modal za makro/mikro – veličina ostaje kao original, samo se okreće */
+        /* Rotirani modal za unos broja (macro/micro) – ista veličina, samo rotiran */
         .modal-content.landscape {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(90deg);
         }
+
         .modal h3 { margin-bottom: 20px; text-align: center; color: #333; }
         .modal input { 
             width: 100%; 
@@ -322,9 +345,8 @@
         @media (max-width: 480px) {
             .header h1 { font-size: 22px; }
             .button-grid { padding: 12px; }
-            .photo-btn { padding: 35px 25px; font-size: 24px; }
-            .btn-macro, .btn-micro { padding-top: 50px; padding-bottom: 50px; }
-            .photo-btn .icon { font-size: 38px; }
+            .photo-btn { padding: 50px 30px; font-size: 24px; margin-bottom: 12px; }
+            .btn-macro, .btn-micro { padding-top: 70px; padding-bottom: 70px; }
             .camera-controls { padding: 20px; }
             .capture-btn { width: 70px; height: 70px; }
             .camera-header { padding: 12px; }
@@ -341,37 +363,39 @@
         <div class="main-content">
             <div id="status" class="status" style="display: none;"></div>
             <div class="button-grid">
-                <!-- UPUTNICA – normalno dugme -->
+                <!-- UPUTNICA – klasično dugme -->
                 <button class="photo-btn btn-uputnica" onclick="showPatientInput('uputnica')">
-                    <span>UPUTNICA</span><span class="icon">📄</span>
-                </button>
-
-                <!-- MAKRO – deblje dugme, rotiran sadržaj, SLIKA u novi red ispod ikonice -->
-                <button class="photo-btn btn-macro" onclick="showPatientInput('macro')">
-                    <div class="rotated-inner">
-                        <span class="icon">📷</span>
-                        <span class="btn-label">
-                            <span class="line">MAKROSKOPSKA</span>
-                            <span class="line">SLIKA</span>
-                        </span>
+                    <div class="btn-uputnica-content">
+                        <span>UPUTNICA</span><span class="icon">📄</span>
                     </div>
                 </button>
 
-                <!-- MIKRO – deblje dugme, rotiran sadržaj, SLIKA u novi red ispod ikonice -->
+                <!-- MAKRO – deblje dugme, rotiran tekst + ikona, SLIKA ispod -->
+                <button class="photo-btn btn-macro" onclick="showPatientInput('macro')">
+                    <div class="mm-inner">
+                        <div class="mm-rot">
+                            <span class="icon">📷</span>
+                            <span class="mm-label">MAKROSKOPSKA</span>
+                        </div>
+                        <div class="mm-slika">SLIKA</div>
+                    </div>
+                </button>
+
+                <!-- MIKRO – deblje dugme, rotiran tekst + ikona, SLIKA ispod -->
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
-                    <div class="rotated-inner">
-                        <span class="icon">🔬</span>
-                        <span class="btn-label">
-                            <span class="line">MIKROSKOPSKA</span>
-                            <span class="line">SLIKA</span>
-                        </span>
+                    <div class="mm-inner">
+                        <div class="mm-rot">
+                            <span class="icon">🔬</span>
+                            <span class="mm-label">MIKROSKOPSKA</span>
+                        </div>
+                        <div class="mm-slika">SLIKA</div>
                     </div>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL ZA BROJ PACIJENTA -->
+    <!-- MODAL za unos broja pacijenta -->
     <div id="patientModal" class="modal">
         <div class="modal-content" id="patientModalContent">
             <h3 id="patientModalTitle">UPUTNICA</h3>
@@ -424,7 +448,7 @@
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
         window.addEventListener('resize', () => {
-            // No restrictions
+            // No restrictions, just visual hint if treba
         });
         window.addEventListener('orientationchange', () => {
             // No restrictions
@@ -471,7 +495,7 @@
             document.getElementById('patientNumber').value = '';
 
             const modalContent = document.getElementById('patientModalContent');
-            // Rotiran modal samo za makro/mikro
+            // za makro/mikro – rotiraj modal (landscape); za uputnicu – normalno
             if (photoType === 'macro' || photoType === 'micro') {
                 modalContent.classList.add('landscape');
             } else {
@@ -508,6 +532,7 @@
             zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             
+            // Reset zoom
             currentZoom = '1x';
             document.querySelectorAll('.zoom-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.zoom === '1x');
@@ -542,13 +567,16 @@
             currentZoom = zoom;
             document.getElementById('zoomIndicator').textContent = `🔍 ${zoom}`;
             
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.zoom === zoom);
+            });
+            
             if (videoTrack) {
                 try {
                     const capabilities = videoTrack.getCapabilities();
                     if (capabilities.zoom) {
                         const minZoom = capabilities.zoom.min;
                         const maxZoom = capabilities.zoom.max;
-                        
                         let zoomValue = zoom === '1x' ? minZoom : Math.min(minZoom * 2, maxZoom);
                         
                         await videoTrack.applyConstraints({
@@ -581,12 +609,14 @@
             const ctx = canvas.getContext('2d');
             
             if (currentPhotoType === 'macro') {
+                // Rotate macro images by 90 degrees
                 canvas.width = video.videoHeight;
                 canvas.height = video.videoWidth;
                 ctx.translate(canvas.width / 2, canvas.height / 2);
                 ctx.rotate(-Math.PI / 2);
                 ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
             } else if (currentPhotoType === 'micro') {
+                // For micro, rotate AND crop to 5:4 aspect ratio
                 const targetAspect = 5/4;
                 
                 canvas.width = video.videoHeight;
@@ -625,6 +655,7 @@
                 canvas.height = finalCanvas.height;
                 ctx.drawImage(finalCanvas, 0, 0);
             } else {
+                // Normal capture for uputnica
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0);
