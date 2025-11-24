@@ -52,7 +52,7 @@
         .button-grid { 
             display: flex;
             flex-direction: column;
-            gap: 0;
+            gap: 15px;
             height: 100%;
             padding: 15px;
         }
@@ -60,7 +60,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 60px 35px;
+            padding: 40px 35px;
             border: none;
             border-radius: 20px;
             font-size: 26px;
@@ -69,7 +69,6 @@
             cursor: pointer;
             transition: all 0.2s ease;
             flex: 1;
-            margin-bottom: 15px;
             position: relative;
             box-shadow: 
                 0 8px 16px rgba(0,0,0,0.2),
@@ -77,9 +76,7 @@
                 inset 0 -3px 0 rgba(0,0,0,0.2),
                 inset 0 2px 0 rgba(255,255,255,0.3);
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .photo-btn:last-child {
-            margin-bottom: 0;
+            overflow: hidden;
         }
         .photo-btn:active { 
             transform: translateY(4px);
@@ -101,7 +98,7 @@
             pointer-events: none;
         }
         .photo-btn .icon { 
-            font-size: 42px; /* iste ikonice za sva 3 dugmeta */
+            font-size: 42px; 
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
         .btn-uputnica { 
@@ -109,30 +106,35 @@
         }
         .btn-macro { 
             background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-            padding-top: 80px;   /* deblje dugme */
-            padding-bottom: 80px;
+            padding-top: 60px;
+            padding-bottom: 60px; /* deblje dugme */
         }
         .btn-micro { 
             background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
-            padding-top: 80px;   /* deblje dugme */
-            padding-bottom: 80px;
+            padding-top: 60px;
+            padding-bottom: 60px; /* deblje dugme */
         }
 
-        /* Unutrašnji layout dugmadi */
-        .btn-content {
+        /* Sadržaj za makro/mikro – rotiran, manji tekst, SLIKA u novi red ispod ikonice */
+        .rotated-inner {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            width: 100%;
-        }
-
-        /* Rotiran tekst za makro/mikro */
-        .rotated-text {
             transform: rotate(90deg);
             transform-origin: center center;
-            white-space: nowrap;
+            gap: 4px;
+        }
+        .btn-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.1;
+        }
+        .btn-label .line {
+            display: block;
+            font-size: 18px; /* manji tekst za makro/mikro */
+            font-weight: 700;
         }
 
         .status {
@@ -174,16 +176,15 @@
             border-radius: 20px;
             padding: 30px;
             width: 90%;
-            max-width: 400px; /* originalna širina */
+            max-width: 400px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
-        /* Rotirani modal za makro/mikro – ista širina, samo okrenut */
+        /* Rotiran modal za makro/mikro – veličina ostaje kao original, samo se okreće */
         .modal-content.landscape {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(90deg);
         }
-
         .modal h3 { margin-bottom: 20px; text-align: center; color: #333; }
         .modal input { 
             width: 100%; 
@@ -321,16 +322,14 @@
         @media (max-width: 480px) {
             .header h1 { font-size: 22px; }
             .button-grid { padding: 12px; }
-            .photo-btn { padding: 50px 30px; font-size: 24px; margin-bottom: 12px; }
-            .btn-macro, .btn-micro { padding-top: 70px; padding-bottom: 70px; }
+            .photo-btn { padding: 35px 25px; font-size: 24px; }
+            .btn-macro, .btn-micro { padding-top: 50px; padding-bottom: 50px; }
             .photo-btn .icon { font-size: 38px; }
             .camera-controls { padding: 20px; }
             .capture-btn { width: 70px; height: 70px; }
             .camera-header { padding: 12px; }
             .camera-info h3 { font-size: 13px; }
             .camera-info p { font-size: 11px; }
-        }
-        @media (max-width: 360px) {
         }
     </style>
 </head>
@@ -342,28 +341,37 @@
         <div class="main-content">
             <div id="status" class="status" style="display: none;"></div>
             <div class="button-grid">
+                <!-- UPUTNICA – normalno dugme -->
                 <button class="photo-btn btn-uputnica" onclick="showPatientInput('uputnica')">
-                    <div class="btn-content">
-                        <span>UPUTNICA</span>
-                        <span class="icon">📄</span>
-                    </div>
+                    <span>UPUTNICA</span><span class="icon">📄</span>
                 </button>
+
+                <!-- MAKRO – deblje dugme, rotiran sadržaj, SLIKA u novi red ispod ikonice -->
                 <button class="photo-btn btn-macro" onclick="showPatientInput('macro')">
-                    <div class="btn-content">
-                        <span class="rotated-text">MAKROSKOPSKA SLIKA</span>
+                    <div class="rotated-inner">
                         <span class="icon">📷</span>
+                        <span class="btn-label">
+                            <span class="line">MAKROSKOPSKA</span>
+                            <span class="line">SLIKA</span>
+                        </span>
                     </div>
                 </button>
+
+                <!-- MIKRO – deblje dugme, rotiran sadržaj, SLIKA u novi red ispod ikonice -->
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
-                    <div class="btn-content">
-                        <span class="rotated-text">MIKROSKOPSKA SLIKA</span>
+                    <div class="rotated-inner">
                         <span class="icon">🔬</span>
+                        <span class="btn-label">
+                            <span class="line">MIKROSKOPSKA</span>
+                            <span class="line">SLIKA</span>
+                        </span>
                     </div>
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL ZA BROJ PACIJENTA -->
     <div id="patientModal" class="modal">
         <div class="modal-content" id="patientModalContent">
             <h3 id="patientModalTitle">UPUTNICA</h3>
@@ -376,6 +384,7 @@
         </div>
     </div>
 
+    <!-- KAMERA -->
     <div id="cameraModal" class="modal camera-modal">
         <div class="camera-container">
             <div class="camera-header">
@@ -414,8 +423,12 @@
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
-        window.addEventListener('resize', () => {});
-        window.addEventListener('orientationchange', () => {});
+        window.addEventListener('resize', () => {
+            // No restrictions
+        });
+        window.addEventListener('orientationchange', () => {
+            // No restrictions
+        });
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
@@ -458,18 +471,11 @@
             document.getElementById('patientNumber').value = '';
 
             const modalContent = document.getElementById('patientModalContent');
-
-            // Rotiraj modal + pokušaj landscape tastature za makro/mikro
+            // Rotiran modal samo za makro/mikro
             if (photoType === 'macro' || photoType === 'micro') {
                 modalContent.classList.add('landscape');
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(() => {});
-                }
             } else {
                 modalContent.classList.remove('landscape');
-                if (screen.orientation && screen.orientation.unlock) {
-                    screen.orientation.unlock();
-                }
             }
 
             document.getElementById('patientModal').style.display = 'block';
@@ -502,7 +508,6 @@
             zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             
-            // Reset zoom
             currentZoom = '1x';
             document.querySelectorAll('.zoom-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.zoom === '1x');
@@ -537,16 +542,13 @@
             currentZoom = zoom;
             document.getElementById('zoomIndicator').textContent = `🔍 ${zoom}`;
             
-            document.querySelectorAll('.zoom-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.zoom === zoom);
-            });
-            
             if (videoTrack) {
                 try {
                     const capabilities = videoTrack.getCapabilities();
                     if (capabilities.zoom) {
                         const minZoom = capabilities.zoom.min;
                         const maxZoom = capabilities.zoom.max;
+                        
                         let zoomValue = zoom === '1x' ? minZoom : Math.min(minZoom * 2, maxZoom);
                         
                         await videoTrack.applyConstraints({
