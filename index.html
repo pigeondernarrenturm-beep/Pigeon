@@ -120,9 +120,10 @@
         /* Rotiran sadržaj samo za mikro */
         .rotated-inner {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
+            gap: 15px;
             transform: rotate(90deg);
             transform-origin: center center;
         }
@@ -353,8 +354,10 @@
                 </button>
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <div class="rotated-inner">
-                        <span class="line-main">MIKROSKOPSKA</span>
-                        <span class="line-sub">SLIKA</span>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span class="line-main">MIKROSKOPSKA</span>
+                            <span class="line-sub">SLIKA</span>
+                        </div>
                         <span class="icon">🔬</span>
                     </div>
                 </button>
