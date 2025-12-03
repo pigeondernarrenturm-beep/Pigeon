@@ -127,7 +127,7 @@
             width: 100%;
         }
 
-        /* Unutrašnji layout za MAKRO / MIKRO (koristi se sada samo za mikro) */
+        /* Unutrašnji layout za MAKRO / MIKRO */
         .mm-inner {
             display: flex;
             flex-direction: column;
@@ -135,7 +135,7 @@
             justify-content: center;
             width: 100%;
         }
-        /* Rotirani blok: ikona + "MIKROSKOPSKA" */
+        /* Rotirani blok: ikona + "MAKROSKOPSKA" / "MIKROSKOPSKA" */
         .mm-rot {
             display: flex;
             align-items: center;
@@ -148,6 +148,10 @@
             font-size: 18px;
             font-weight: 700;
         }
+        .mm-rot .icon {
+            /* ostaje 42px iz .icon */
+        }
+        /* Riječ SLIKA u novom redu ispod zarotirane ikone */
         .mm-slika {
             margin-top: 10px;
             font-size: 18px;
@@ -197,7 +201,7 @@
             max-width: 400px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
-        /* Rotirani modal za unos broja – sada SAMO za mikro */
+        /* Rotirani modal za unos broja (sada SAMO za micro) */
         .modal-content.landscape {
             top: 50%;
             left: 50%;
@@ -366,14 +370,14 @@
                     </div>
                 </button>
 
-                <!-- MAKRO – sada kao UPUTNICA (bez rotacije) -->
+                <!-- MAKRO – SADA KAO UPUTNICA (bez rotacije) -->
                 <button class="photo-btn btn-macro" onclick="showPatientInput('macro')">
                     <div class="btn-uputnica-content">
                         <span>MAKROSKOPSKA SLIKA</span><span class="icon">📷</span>
                     </div>
                 </button>
 
-                <!-- MIKRO – ostaje deblje dugme, rotiran tekst + ikona, SLIKA ispod -->
+                <!-- MIKRO – OSTAVLJENO KAO PRVO (rotiran blok + SLIKA ispod) -->
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <div class="mm-inner">
                         <div class="mm-rot">
@@ -439,12 +443,8 @@
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
 
-        window.addEventListener('resize', () => {
-            // No restrictions, just visual hint if treba
-        });
-        window.addEventListener('orientationchange', () => {
-            // No restrictions
-        });
+        window.addEventListener('resize', () => {});
+        window.addEventListener('orientationchange', () => {});
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
@@ -487,7 +487,7 @@
             document.getElementById('patientNumber').value = '';
 
             const modalContent = document.getElementById('patientModalContent');
-            // Rotiran modal sada samo za mikro
+            // SADA: rotiran modal SAMO za micro
             if (photoType === 'micro') {
                 modalContent.classList.add('landscape');
             } else {
