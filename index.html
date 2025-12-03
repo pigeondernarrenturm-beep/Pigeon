@@ -120,17 +120,11 @@
         /* Rotiran sadržaj samo za mikro */
         .rotated-inner {
             display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transform: rotate(90deg);
-            transform-origin: center center;
-        }
-        .rotated-inner .text-wrapper {
-            display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            transform: rotate(90deg);
+            transform-origin: center center;
         }
         .rotated-inner .line-main {
             font-size: 18px;
@@ -145,6 +139,7 @@
         }
         .rotated-inner .icon {
             font-size: 42px;
+            margin-top: 8px;
         }
 
         .status {
@@ -358,10 +353,8 @@
                 </button>
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
                     <div class="rotated-inner">
-                        <div class="text-wrapper">
-                            <span class="line-main">MIKROSKOPSKA</span>
-                            <span class="line-sub">SLIKA</span>
-                        </div>
+                        <span class="line-main">MIKROSKOPSKA</span>
+                        <span class="line-sub">SLIKA</span>
                         <span class="icon">🔬</span>
                     </div>
                 </button>
