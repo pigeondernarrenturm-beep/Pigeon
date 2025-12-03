@@ -467,8 +467,8 @@
             document.getElementById('patientNumber').value = '';
 
             const modalContent = document.getElementById('patientModalContent');
-            // rotiraj prozor samo za makro/mikro
-            if (photoType === 'macro' || photoType === 'micro') {
+            // rotiraj prozor samo za MAKRO
+            if (photoType === 'macro') {
                 modalContent.classList.add('landscape');
             } else {
                 modalContent.classList.remove('landscape');
