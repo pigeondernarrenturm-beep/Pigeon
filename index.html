@@ -117,30 +117,70 @@
             min-height: 180px;
         }
 
-        /* Rotiran sadržaj samo za mikro */
-        .rotated-inner {
+        /* Prilagodjeni CSS za mikro dugme - uklonjen rotated-inner */
+        .btn-micro {
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            transform: rotate(90deg);
-            transform-origin: center center;
+            gap: 10px;
         }
-        .rotated-inner .line-main {
+
+        .btn-micro .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .btn-micro .line-main {
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
-        .rotated-inner .line-sub {
+
+        .btn-micro .line-sub {
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0.5px;
             margin-top: 4px;
         }
-        .rotated-inner .icon {
+
+        .btn-micro .icon {
             font-size: 42px;
             margin-top: 8px;
+            order: 3; /* Ikona na kraju (ispod) */
+        }
+
+        /* Za landscape orijentaciju - tekst i ikona vertikalno */
+        @media (orientation: landscape) and (max-height: 600px) {
+            .btn-micro {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn-micro .icon {
+                margin-top: 15px;
+            }
+        }
+
+        /* Za portrait orijentaciju - tekst i ikona horizontalno */
+        @media (orientation: portrait) {
+            .btn-micro {
+                flex-direction: row;
+                gap: 15px;
+            }
+            
+            .btn-micro .text-container {
+                flex: 1;
+                align-items: flex-start;
+                text-align: left;
+            }
+            
+            .btn-micro .icon {
+                margin-top: 0;
+                order: 2; /* Ikona desno od teksta */
+            }
         }
 
         .status {
@@ -185,7 +225,7 @@
             max-width: 400px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
-        /* Rotirani prozor za broj pacijenta samo kod mikro */
+        /* Rotirani prozor za broj pacijenta samo kod mikro u landscape */
         .modal-content.landscape {
             transform: translate(-50%, -30%) rotate(90deg);
         }
@@ -353,13 +393,11 @@
                     <span>MAKROSKOPSKA SLIKA</span><span class="icon">📷</span>
                 </button>
                 <button class="photo-btn btn-micro" onclick="showPatientInput('micro')">
-                    <div class="rotated-inner">
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <span class="line-main">MIKROSKOPSKA</span>
-                            <span class="line-sub">SLIKA</span>
-                        </div>
-                        <span class="icon">🔬</span>
+                    <div class="text-container">
+                        <span class="line-main">MIKROSKOPSKA</span>
+                        <span class="line-sub">SLIKA</span>
                     </div>
+                    <span class="icon">🔬</span>
                 </button>
             </div>
         </div>
@@ -414,13 +452,25 @@
         let stream = null;
         let videoTrack = null;
         let savedPhotos = JSON.parse(localStorage.getItem('pigeonPhotos') || '[]');
+        let isLandscapeMode = window.innerWidth > window.innerHeight;
 
-        window.addEventListener('resize', () => {
-            // No restrictions, just visual hint
-        });
-        window.addEventListener('orientationchange', () => {
-            // No restrictions, just visual hint
-        });
+        // Funkcija za ažuriranje orijentacije
+        function updateOrientation() {
+            isLandscapeMode = window.innerWidth > window.innerHeight;
+            
+            // Ažuriraj zoom kontrole ako je kamera otvorena za mikro
+            if (currentPhotoType === 'micro' && document.getElementById('cameraModal').style.display === 'block') {
+                const zoomControls = document.getElementById('zoomControls');
+                if (isLandscapeMode) {
+                    zoomControls.style.display = 'flex';
+                } else {
+                    zoomControls.style.display = 'none';
+                }
+            }
+        }
+
+        window.addEventListener('resize', updateOrientation);
+        window.addEventListener('orientationchange', updateOrientation);
 
         async function uploadToDrive(fileName, dataUrl) {
             try {
@@ -463,8 +513,8 @@
             document.getElementById('patientNumber').value = '';
 
             const modalContent = document.getElementById('patientModalContent');
-            // rotiraj prozor samo za mikro
-            if (photoType === 'micro') {
+            // Rotiraj modal samo za mikro u landscape modu
+            if (photoType === 'micro' && window.innerWidth > window.innerHeight) {
                 modalContent.classList.add('landscape');
             } else {
                 modalContent.classList.remove('landscape');
@@ -496,8 +546,18 @@
                 'micro': 'MIKROSKOPSKA SLIKA'
             };
             document.getElementById('cameraTitle').textContent = titles[photoType];
+            
+            // Proveri orijentaciju
+            const isLandscape = window.innerWidth > window.innerHeight;
             const zoomControls = document.getElementById('zoomControls');
-            zoomControls.style.display = photoType === 'micro' ? 'flex' : 'none';
+            
+            // Prikaži zoom kontrole samo za mikro u landscape modu
+            if (photoType === 'micro' && isLandscape) {
+                zoomControls.style.display = 'flex';
+            } else {
+                zoomControls.style.display = 'none';
+            }
+            
             document.getElementById('flashIndicator').style.display = photoType === 'uputnica' ? 'block' : 'none';
             
             // Reset zoom
@@ -577,52 +637,61 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
+            // Proveri da li je telefon u landscape ili portrait modu
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
             if (currentPhotoType === 'macro') {
-                // Rotate macro images by 90 degrees
+                // Rotiraj makro slike za 90 stepeni
                 canvas.width = video.videoHeight;
                 canvas.height = video.videoWidth;
                 ctx.translate(canvas.width / 2, canvas.height / 2);
                 ctx.rotate(-Math.PI / 2);
                 ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
             } else if (currentPhotoType === 'micro') {
-                // Rotate AND crop micro to 5:4
-                const targetAspect = 5/4;
-                
-                canvas.width = video.videoHeight;
-                canvas.height = video.videoWidth;
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(-Math.PI / 2);
-                ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
-                
-                const rotatedCanvas = document.createElement('canvas');
-                const rotatedCtx = rotatedCanvas.getContext('2d');
-                
-                let cropWidth, cropHeight, offsetX, offsetY;
-                const sourceWidth = canvas.width;
-                const sourceHeight = canvas.height;
-                const sourceAspect = sourceWidth / sourceHeight;
-                
-                if (sourceAspect > targetAspect) {
-                    cropHeight = sourceHeight;
-                    cropWidth = cropHeight * targetAspect;
-                    offsetX = (sourceWidth - cropWidth) / 2;
-                    offsetY = 0;
+                // Za mikro slike - RAZLIČITO ZA LANDSCAPE I PORTRAIT
+                if (isLandscape) {
+                    // Landscape mod: rotiraj i crop-uj na 5:4
+                    canvas.width = video.videoHeight;
+                    canvas.height = video.videoWidth;
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate(-Math.PI / 2);
+                    ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
+                    
+                    // Crop to 5:4 aspect ratio
+                    const targetAspect = 5/4;
+                    const sourceWidth = canvas.width;
+                    const sourceHeight = canvas.height;
+                    const sourceAspect = sourceWidth / sourceHeight;
+                    
+                    let cropWidth, cropHeight, offsetX, offsetY;
+                    
+                    if (sourceAspect > targetAspect) {
+                        cropHeight = sourceHeight;
+                        cropWidth = cropHeight * targetAspect;
+                        offsetX = (sourceWidth - cropWidth) / 2;
+                        offsetY = 0;
+                    } else {
+                        cropWidth = sourceWidth;
+                        cropHeight = cropWidth / targetAspect;
+                        offsetX = 0;
+                        offsetY = (sourceHeight - cropHeight) / 2;
+                    }
+                    
+                    const finalCanvas = document.createElement('canvas');
+                    const finalCtx = finalCanvas.getContext('2d');
+                    finalCanvas.width = cropWidth;
+                    finalCanvas.height = cropHeight;
+                    finalCtx.drawImage(canvas, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                    
+                    canvas.width = finalCanvas.width;
+                    canvas.height = finalCanvas.height;
+                    ctx.drawImage(finalCanvas, 0, 0);
                 } else {
-                    cropWidth = sourceWidth;
-                    cropHeight = cropWidth / targetAspect;
-                    offsetX = 0;
-                    offsetY = (sourceHeight - cropHeight) / 2;
+                    // Portrait mod: normalna fotografija BEZ rotacije i BEZ crop-a
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
                 }
-                
-                const finalCanvas = document.createElement('canvas');
-                const finalCtx = finalCanvas.getContext('2d');
-                finalCanvas.width = cropWidth;
-                finalCanvas.height = cropHeight;
-                finalCtx.drawImage(canvas, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-                
-                canvas.width = finalCanvas.width;
-                canvas.height = finalCanvas.height;
-                ctx.drawImage(finalCanvas, 0, 0);
             } else {
                 // Normal capture for uputnica
                 canvas.width = video.videoWidth;
